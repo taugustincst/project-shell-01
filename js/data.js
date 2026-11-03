@@ -30,7 +30,7 @@ const LOCATIONS = [
    sellout {n,k}: after k browses out it sells for n and leaves stock                 empty {n}: +n per adjacent empty space
    row {t,n}: +n if its row holds 3+ of tag t        week {n}: +n per three weeks of the season        spawn {s,p}: chance p each browse to add symbol s to stock
    turn {t,s}: adjacent tag t become s               lone {n}: +n if nothing of its own family is adjacent
-   Tiers: 0 starting pool, 1 unlocks at week 6 reached, 2 at first season clear, 3 at Harbour clear (paid pool). */
+   Tiers: 0 starting pool, 1 unlocks at week 6 reached, 2 at first season clear, 3 at Harbour clear. */
 const SYMBOLS = [
   // produce
   ['apple', 'Apples', 'produce', 2, ['fruit', 'red', 'sun'], { k: 'wx', w: 'sun', n: 2 }, 0],

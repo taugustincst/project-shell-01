@@ -2,7 +2,7 @@
 
 **A cozy builder about running a market stall.** Stock a five-shelf stall with produce, baked goods, preserves, flowers, crafts and curios. Each Saturday the customers browse; what you stocked and how it sits together decides what they spend. Pay the escalating stall fee, engineer absurd combos, and buy the shop on the square before the twelfth week, or go bust.
 
-Free on Google Play (the complete Village Green season) with a one-time $4.99 unlock for the Harbour Market, City Square, the endless Free Market and the full stock pool. No ads, no consumables, no accounts, fully offline.
+A paid download on Google Play with the whole game included: all three markets, the endless Free Market and the full stock pool. No in-app purchases, no ads, no accounts, fully offline.
 
 Status: **v1.0.0 draft built 2026-11-03**, not submitted. Brief and living log: [HANDOFF.md](HANDOFF.md). Plan and verification: [tasks/todo.md](tasks/todo.md). Repo rename to `open-stall` at ship time (Tj's call).
 
@@ -23,16 +23,16 @@ Owner: Tj (Taylor Augustin) / AugustInnovations LLC.
 | --- | --- |
 | `js/data.js` | All content: families, weather, locations, symbols, charms, events, combo archetypes. |
 | `js/engine.js` | Rules engine: deterministic (seeded), no DOM, runs in Node and the browser. |
-| `js/game.js` | UI, save, flow, test API. `js/billing.js` Google Play Billing (Digital Goods API, `full_unlock`). |
+| `js/game.js` | UI, save, flow, test API. |
 | `sim/harness.js` | Balance harness: `node sim/harness.js 50 green 1` plays ~1,200 seasons (random, greedy, one focused player per archetype) and reports win-rate, coin curves, combo usage and the viable-archetype count. Exit code 2 below the 15-archetype kill rule. |
 | `tests/engine.test.js` · `tests/smoke.js` | Engine unit tests; Playwright smoke test (works over `file://`). |
 | `tools/make-icons.js` | Icons and the staged store screenshot via the test API. |
 
-`window.__openstall`: `start(loc, seed)`, `setWeek`, `setWeather`, `give`, `stock([...])`, `charm(id)`, `browse`, `take(i)`, `skip`, `pay`, `unlock`, `setTier`, `save`, `reset`. `?dev=1` makes the unlock free (test builds only).
+`window.__openstall`: `start(loc, seed)`, `setWeek`, `setWeather`, `give`, `stock([...])`, `charm(id)`, `browse`, `take(i)`, `skip`, `pay`, `setTier`, `save`, `reset`.
 
 Save: `localStorage` key `openstall.v1` = `{ run, meta, settings }`, every field sanitized and clamped on load; an unparseable save is copied to `openstall.v1.backup` and the game starts fresh.
 
-## Balance (harness, 50 runs per strategy, Village Green, free pool)
+## Balance (harness, 50 runs per strategy, Village Green, tier ≤1 pool)
 
 | Player | Win-rate |
 | --- | --- |
@@ -40,8 +40,8 @@ Save: `localStorage` key `openstall.v1` = `{ run, meta, settings }`, every field
 | Greedy by payout | 50% |
 | Focused on one archetype | 34–98%, 19 of 22 archetypes viable, 15 distinct signature combos |
 
-Harbour and Square are harder for the same heuristics (7 and 0 viable); the paid pool's weather locks and extra browses are what those markets are built around, and the harness does not yet play them. Week-4 balance pass still to do.
+Harbour and Square are harder for the same heuristics (7 and 0 viable); the tier-3 pool's weather locks and extra browses are what those markets are built around, and the harness does not yet play them. Week-4 balance pass still to do.
 
 ## Publishing
 
-Ships as a Trusted Web Activity (Ironhold pattern); the Android project is not in this repo yet. Pages deploys from `main` via `.github/workflows/pages.yml` once Tj enables Pages (Settings → Pages → Source: GitHub Actions). Privacy policy: `privacy.html`. Store copy: `store/listing.md`.
+A paid app on Google Play with the whole game packed inside it (`android/play`, see `PLAY.md`). Pages deploys only the store page from `main` (`site/index.html`, the privacy policy `privacy.html` and the store graphics), not the playable game. Store copy: `store/listing.md`.

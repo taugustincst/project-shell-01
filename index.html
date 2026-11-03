@@ -2,22 +2,101 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Open Stall — in development</title>
-<style>
-  body { font-family: system-ui, sans-serif; margin: 0; min-height: 100vh; display: grid; place-items: center; background: #121a24; color: #e8eef4; }
-  main { max-width: 34rem; padding: 2rem; text-align: center; }
-  h1 { font-size: 2rem; margin-bottom: 0.5rem; }
-  p { color: #aebfd0; line-height: 1.5; }
-  a { color: #f2c14e; }
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f6efe3">
+<meta name="description" content="Open Stall: a cozy market-stall builder. Stock a five-shelf stall, discover combos, pay the rent, buy the shop.">
+<title>Open Stall</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-<main>
-  <h1>Open Stall</h1>
-  <p>A cozy symbol-builder roguelite about running a market stall.</p>
-  <p>In development by AugustInnovations LLC. The game will live at this address.</p>
-  <p>Build brief and progress: <a href="HANDOFF.md">HANDOFF.md</a></p>
-</main>
+<div id="app" class="app" hidden>
+  <!-- Title -->
+  <section id="screen-title" class="screen">
+    <header class="hero"><div class="hero-mark">🧺</div><h1>Open Stall</h1><p class="tag">Twelve Saturdays. One trestle table. Buy the shop on the square.</p></header>
+    <div class="card">
+      <h2>Market</h2>
+      <div id="loc-list" class="loc-list"></div>
+      <div class="row-btns"><button class="btn primary" id="btn-start">Open the stall</button><button class="btn" id="btn-continue" hidden>Continue the season</button></div>
+    </div>
+    <div class="card" id="meta-card"></div>
+    <div class="card"><div class="row-btns"><button class="btn" id="btn-journal-title">Combo journal</button><button class="btn" id="btn-more-title">Settings &amp; about</button></div></div>
+  </section>
+
+  <!-- Market -->
+  <section id="screen-market" class="screen" hidden>
+    <header class="top">
+      <div><div class="week" id="hdr-week">Week 1 of 12</div><div class="sub" id="hdr-loc">Village Green</div></div>
+      <button class="wx" id="hdr-wx" title="Today's weather"><span id="hdr-wx-icon">☀</span> <span id="hdr-wx-name">Sunny</span></button>
+    </header>
+    <div class="money-row">
+      <div class="money"><span class="lbl">Coins</span><b id="hdr-coins">15</b></div>
+      <div class="money"><span class="lbl">Fee due</span><b id="hdr-rent">22</b></div>
+      <div class="money"><span class="lbl">The shop</span><b id="hdr-shop">1000</b></div>
+      <div class="money"><span class="lbl">Browses</span><b id="hdr-spins">0 / 5</b></div>
+    </div>
+    <button class="event-strip" id="event-strip"></button>
+    <div class="stall" id="stall" aria-label="The stall"></div>
+    <div class="total" id="total" aria-live="polite">Tap <b>Open up</b> and the customers will browse.</div>
+    <div class="actions">
+      <button class="btn primary big" id="btn-browse">Open up</button>
+      <button class="btn big" id="btn-dusk" hidden>Close for the day</button>
+      <button class="btn big gold" id="btn-shop" hidden>Buy the shop</button>
+    </div>
+    <nav class="tabs">
+      <button class="tab active" data-tab="stall">Stall</button><button class="tab" data-tab="stock">Stock <span class="badge" id="stock-count">6</span></button><button class="tab" data-tab="charms">Charms</button><button class="tab" data-tab="journal">Journal</button><button class="tab" data-tab="more">More</button>
+    </nav>
+    <main class="panels">
+      <section id="tab-stall" class="panel active"><div class="card" id="day-card"></div><div class="card" id="ledger-card"></div></section>
+      <section id="tab-stock" class="panel"><p class="muted small">Tap anything to read its rule. Items are laid out at random each browse; if you stock more than fifteen, some stay in the boxes.</p><div id="stock-list" class="grid-list"></div></section>
+      <section id="tab-charms" class="panel"><div id="charm-list"></div></section>
+      <section id="tab-journal" class="panel"><div id="journal-list"></div></section>
+      <section id="tab-more" class="panel"></section>
+    </main>
+  </section>
+
+  <!-- More (shared) -->
+  <section id="more-content" hidden>
+    <div class="card"><h2>Settings</h2>
+      <label class="row"><input type="checkbox" id="opt-large"> Large text</label>
+      <label class="row"><input type="checkbox" id="opt-motion"> Reduce motion</label>
+      <label class="row"><input type="checkbox" id="opt-contrast"> High contrast</label>
+    </div>
+    <div class="card" id="unlock-card"><h2>The whole market</h2>
+      <p id="unlock-status">The Village Green season is free and complete. One purchase opens the Harbour Market and City Square, the endless Free Market, and the full stock and charm pool.</p>
+      <div class="row-btns"><button class="btn primary" id="btn-unlock">Unlock the whole market</button><button class="btn" id="btn-restore">Restore purchase</button></div>
+    </div>
+    <div class="card"><h2>Save</h2><p class="muted small">Progress is saved on this device automatically. Nothing leaves it.</p>
+      <div class="row-btns"><button class="btn" id="btn-abandon">Abandon this season</button><button class="btn danger" id="btn-reset">Forget everything</button></div></div>
+    <div class="card about"><h2>About</h2><p>Open Stall is a cozy builder about running a market stall: stock it, discover combos, pay the fee, buy the shop. No ads, no timers, no accounts, offline.</p>
+      <p class="muted small">Version <span id="about-version">1.0.0</span> · <a href="privacy.html">Privacy</a> · © AugustInnovations LLC</p></div>
+    <div class="row-btns"><button class="btn" id="btn-back-title">Back to the market gate</button></div>
+  </section>
+</div>
+
+<div class="modal" id="modal-offer" hidden role="dialog" aria-modal="true"><div class="sheet">
+  <div class="sheet-date" id="offer-sub">The wholesaler</div><h2>Take one for the stall?</h2>
+  <div id="offer-list" class="offer-list"></div>
+  <div class="row-btns"><button class="btn" id="btn-offer-skip">Nothing today</button><button class="btn" id="btn-offer-reroll" hidden>Re-pick</button></div>
+</div></div>
+<div class="modal" id="modal-dusk" hidden role="dialog" aria-modal="true"><div class="sheet">
+  <div class="sheet-date" id="dusk-sub">Dusk</div><h2 id="dusk-title">The day's ledger</h2>
+  <div id="dusk-ledger" class="ledger"></div>
+  <h3>The wholesaler's charms</h3><div id="dusk-charms"></div>
+  <h3>Sell stock</h3><p class="muted small">Clear the back of the stall. Tap an item to sell it.</p><div id="dusk-sell" class="grid-list small-grid"></div>
+  <div class="row-btns"><button class="btn primary" id="btn-pay">Pay the fee and go home</button><button class="btn gold" id="btn-dusk-shop" hidden>Buy the shop</button></div>
+</div></div>
+<div class="modal" id="modal-info" hidden role="dialog" aria-modal="true"><div class="sheet">
+  <div class="sheet-date" id="info-sub"></div><h2 id="info-title"></h2><p id="info-rule"></p><p class="muted small" id="info-extra"></p>
+  <div class="row-btns"><button class="btn primary" id="btn-info-ok">Close</button><button class="btn" id="btn-info-sell" hidden>Sell</button></div>
+</div></div>
+<div class="modal" id="modal-end" hidden role="dialog" aria-modal="true"><div class="sheet">
+  <div class="sheet-date" id="end-sub"></div><h2 id="end-title"></h2><p id="end-text"></p><div class="stats" id="end-stats"></div><p class="muted small" id="end-unlock"></p>
+  <div class="row-btns"><button class="btn primary" id="btn-end-ok">Back to the market gate</button><button class="btn" id="btn-end-free" hidden>Keep trading: Free Market</button></div>
+</div></div>
+<div id="toast" class="toast" hidden></div>
+<script src="js/data.js"></script><script src="js/engine.js"></script><script src="js/billing.js"></script><script src="js/game.js"></script>
 </body>
 </html>

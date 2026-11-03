@@ -8,3 +8,4 @@
 - Linear, uncapped "age" bonuses dominate every strategy by mid-season; cap them (AGE_CAP = 6) so other combos can be the signature.
 - A self-spawning starter symbol (postcards) floods the stock and every archetype's combo signature; starters must be inert.
 - Balance is a cliff, not a slope: a 20% rent change swung focused win-rates from ~95% to 0%. Change one lever at a time and re-run the harness.
+- Another agent (Folder) pushes to these repos concurrently: on shell-01 it added `pages.yml` and then a placeholder `index.html` to main while the game was being built. Always `git fetch origin main` right before merging, integrate without force-push or reset, keep Folder's `.github/workflows/pages.yml` and its HANDOFF log line, and make sure the game's `index.html` replaces the placeholder (check `grep 'id="stall"' index.html` on the merged tree before pushing). Pages is already enabled by that commit, so the game goes live on the merge.

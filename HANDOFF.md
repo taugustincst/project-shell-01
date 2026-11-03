@@ -1,23 +1,79 @@
-# HANDOFF — project-shell-01
+# HANDOFF — project-shell-01 — OPEN STALL
 
-## Status: SHELL — no project assigned yet
+## Status: ASSIGNED 2026-11-02 — flagship title, build priority #2 (after shell-04's funnel test)
 
-This repository is a **shell for a future Claude project**, created 2026-10-28 by Folder (Muse) at Tj's direction, using the same route as the other project repos (bubblepop, ironhold).
+Roster assignment by Folder at Tj's direction, from the 2026-11-02 Google Play niche research (undersaturated lanes for a solo HTML5 premium dev). This file is the build brief AND the living handoff. Keep it updated.
 
-## What this shell is for
+## 1. THE GAME — exactly what to make
 
-- When Tj assigns a project to this repo, this file becomes the project's handoff: the living record that any Claude session (or Folder) picks up to learn where the project stands.
-- Until then, there is nothing to build. Do not invent a project for this shell.
+**Fantasy:** You run a farmers'-market stall. Over one 12-week season you turn a borrowed trestle table into the market's legendary stall, earn enough to buy the shop on the square — or miss rent and go bust.
 
-## How work here is coordinated
+**Why this game, why now:** Balatro (1M+ Play installs, $9.99, ~$21.3M mobile) and Luck be a Landlord (~190k paid installs, still ~140/day three years on) prove the symbol-builder loop sells on Android. Every existing entry is poker/slot/gambling themed. There are only ~3 quality titles in the whole idea-space. A cozy, non-gambling version is the open lane — and it is a pure systems build, which is this team's strength.
 
-- **Tj decides.** Scope, names, spending, submissions, and anything irreversible are his calls. Everything else, the working agent owns end to end.
-- **Entries are dated and appended** under the log below, newest last: what changed, what was decided and by whom, what is blocked, and the next step.
-- **Verify before asserting.** Check the live state (repo contents, URLs, consoles) before claiming something is done, broken, or blocked.
-- **No prices on marketing websites** (standing rule for Tj's public sites); prices live only in store/procurement documents.
-- **Passwords are always user-set** through secure forms — never set, collected, or stored in this repo.
-- When a decision is Tj's, mark the entry **FOR TJ** and stop there.
+**Core loop (one market day):**
+1. DAWN — Buy stock at the wholesaler: draw from the symbol pool, spend coins, choose what your stall sells today.
+2. MARKET — Customers browse: the 5-reel stall "spins" a set number of times per day. Each spin, symbols on the reels pay out coins based on adjacency and combo rules (honey next to tea pays double; flowers sell out on rainy days). No player timing input — the skill is in what you stocked and how you arranged it.
+3. DUSK — Pay the day's costs, read the day in a short results ledger, then buy/sell symbols and charms (passive modifiers) to engineer tomorrow's synergies.
+4. WEEKLY — Rent and fees escalate on a published schedule. Season win: accumulate the shop price and buy the shop (season clear). Loss: you cannot pay rent when due — the run ends, meta-unlocks persist.
+5. After a season clear: "Free Market" endless mode plus harder stall locations.
+
+**Content targets (v1.0, non-negotiable floors):**
+- 120 symbols across 6 families (produce, baked goods, preserves, flowers, crafts, curios). Every symbol has: price, payout, tags, and ONE plain-language rule shown in full on tap.
+- 80 charms (passive run modifiers).
+- Weather system (5 states) + a deck of ~30 day-events that interact with symbol tags.
+- 3 stall locations (difficulty tiers), 12-week season structure each.
+- A combo journal that records every combo the player has ever triggered, with its rule — discovering combos IS the game.
+- Meta-progression: unlock new symbols/charms/locations permanently across runs. NEVER unlock power for money — the unlock is the whole game, once.
+
+**Design rules:**
+- ZERO gambling skin: no casino words, imagery, or sounds anywhere (also avoids Play gambling-content friction). It is a shop, not a slot machine, in every word and picture.
+- Touch-first: every rule readable by tapping; nothing hover-only. (Lesson paid for on Ironhold.)
+- Runs must support both 5-minute and 45-minute play; a market day is 2–4 minutes.
+
+## 2. BUILD SPEC
+
+- Vanilla HTML5/CSS/JS, no framework, no build step. Static files, deployed to GitHub Pages from this repo (same pattern as taugustincst/bubblepop and taugustincst/ironhold).
+- Fully offline after load. Zero network calls, zero analytics, zero ads, zero accounts.
+- Saves: localStorage, versioned key, sanitizer on load that clamps/drops invalid entries and never hard-fails on a corrupt save (Ironhold lesson — fail soft, keep the profile).
+- Expose a `window.__openstall` test API (seed state, jump to day/week, force weather) for staged screenshots and automated balance runs.
+- Headless balance harness: a Node script that auto-plays 1,000+ runs with simple heuristics and reports win-rate, coin curves, and combo usage distribution. Balance decisions come from this data, not vibes.
+- Portrait-first responsive layout, one-handed playable, large-text option, colourblind-safe palette (never encode meaning in colour alone), no twitch input.
+- Total size budget under 3 MB. 60fps on a mid-range Android phone. Flat icons + text only.
+
+## 3. MONETIZATION — exact
+
+- Google Play: FREE app. One non-consumable in-app product, `full_unlock`, **$4.99**, unlocks everything past the free content. Restore-purchases supported.
+- Free content = the full first location's season (a complete, winnable game). The unlock adds locations 2–3, Free Market endless, and the full symbol/charm pool. The free part must feel COMPLETE, not amputated — Melvor Idle's 3.7 stars are what stingy gating earns.
+- No ads, no consumables, no currency packs, no daily-login bait. Ever. This is the brand.
+
+## 4. HOW IT SUCCEEDS — the launch playbook
+
+- Store title carries the search terms ("Market Stall Roguelite" shape — final title/ASO pass at store-pack time). Short description (max 80 chars) describes features; NEVER use price/promo wording ("no ads, no IAP, free, sale") — Play flags it as promotion and limits featuring (Ironhold lesson).
+- Screenshots: real staged gameplay via the test API, never composited. Shot 1 = a mid-spin stall with a big combo paying out. Captions state content ("120 symbols · 80 charms"), not price claims.
+- Declarations: IARC questionnaire; target audience 13-15 / 16-17 / 18+ (NOT child-directed); Data safety = no data collected, no data shared; privacy policy at this repo's Pages site (privacy.html); contact elderon@augustinnovations.io.
+- Process = the proven Bubble Pop / Ironhold route: internal-testing draft → all declarations → production release → Folder runs an expert review pass before anything is submitted → submission happens only on Tj's explicit approval.
+- Post-launch: reply to every Play review for the first 30 days. The Ironhold listing publicly promises reviews shape the game — honour that across the roster. Ship a v1.1 balance/content patch inside 30 days driven by review themes.
+- SUCCESS TARGETS (90 days post-launch, measured in Play Console only): 25,000 free installs; unlock conversion at or above 3%; rating at or above 4.4 stars. Below 1.5% conversion with a 4.4+ rating = pricing/funnel problem, escalate FOR TJ.
+- KILL/PIVOT RULE: if the balance harness cannot produce at least 15 distinct viable combo archetypes by end of week 4, stop and rework the symbol rules before any art or store work. Synergy depth is the whole product.
+
+## 5. BUILD ORDER (4–5 weeks)
+
+- Week 1: Core engine + reels/payouts/adjacency + 40 symbols, greybox UI. Harness runs.
+- Week 2: Full 120 symbols + 80 charms as data; weather + events; combo journal.
+- Week 3: Season structure, 3 locations, meta-unlocks, save hardening, test API.
+- Week 4: Balance from harness data (this week is sacred — do not steal it for features).
+- Week 5: Store pack (icon, feature graphic, staged screenshots, listing), expert review, submission prep.
+
+## 6. COORDINATION RULES
+
+- Tj decides scope, names, spending, submissions, and anything irreversible. Everything else, the working agent owns end to end.
+- Log entries are dated and appended below, newest last: what changed, who decided, what is blocked, next step.
+- Anything needing Tj is marked FOR TJ and work stops on that item only.
+- Verify live state before asserting anything is done, broken, or blocked.
+- No prices on marketing websites, ever. Prices live only in the Play listing and procurement/store documents.
+- Passwords and signing keys are always Tj's, set by him through secure forms; keystore handling follows the Elderon/Bubble Pop/Ironhold pattern.
 
 ## Log
 
 - **2026-10-28** — Shell created (README.md + this HANDOFF.md). Awaiting project assignment from Tj.
+- **2026-11-02** — ASSIGNED: Open Stall (roster #1). Full build brief installed above by Folder. Build priority #2 in the roster sequence (shell-04 ships first as the funnel test).

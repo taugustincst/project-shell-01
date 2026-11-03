@@ -1,10 +1,12 @@
 /* Open Stall — UI, save, flow. The rules live in engine.js. */
 (function () {
 'use strict';
-const E = window.OS, D = E.D, B = window.OS_BILLING || window.KTL_BILLING;
+const E = window.OS, D = E.D, B = window.OS_BILLING;
 const VERSION = '1.0.0', SAVE_KEY = 'openstall.v1', BACKUP_KEY = 'openstall.v1.backup';
 const $ = id => document.getElementById(id);
-const DEV = new URLSearchParams(location.search).get('dev') === '1';
+// ?dev=1 makes unlocking free for testing. Only on a local copy: the Play app opens the public site, and
+// the free unlock would otherwise be one link away for anyone and saved on their phone.
+const DEV = new URLSearchParams(location.search).get('dev') === '1' && ['localhost', '127.0.0.1', ''].includes(location.hostname);
 const ICONS = { apple: '🍎', pear: '🍐', plum: '🫐', strawberry: '🍓', blackberry: '🫐', cherry: '🍒', lemon: '🍋', rhubarb: '🌱', carrot: '🥕', potato: '🥔', onion: '🧅', pumpkin: '🎃', tomato: '🍅', lettuce: '🥬', mushroom: '🍄', garlic: '🧄', basil: '🌿', mint: '🌿', chilli: '🌶', beetroot: '🟣',
   loaf: '🍞', sourdough: '🥖', scone: '🧁', pie: '🥧', sausageroll: '🌭', croissant: '🥐', cake: '🍰', brownie: '🍫', flapjack: '🍯', bun: '🥯', pasty: '🥟', pretzel: '🥨', gingerbread: '🍪', biscuit: '🍪', muffin: '🧁', baguette: '🥖', tart: '🥧', cheesestraw: '🧀', focaccia: '🫓', crumpet: '🫓',
   jam: '🫙', marmalade: '🍊', honey: '🍯', chutney: '🫙', pickles: '🥒', curd: '🍋', cider: '🍺', juice: '🧃', tea: '🍵', coffee: '☕', cordial: '🍶', hotsauce: '🌶', mustard: '🫙', oil: '🫒', vinegar: '🍾', jelly: '🫐', relish: '🍅', driedapple: '🍎', syrup: '🍁', kombucha: '🧉',

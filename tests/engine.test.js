@@ -41,8 +41,8 @@ t('rent escalates on the published schedule and a missed fee ends the run; the s
   const s = E.newRun({ seed: 2 }); s.phase = 'dusk'; s.coins = 5000; assert.strictEqual(E.payRent(s), 'canbuy'); assert.ok(E.buyShop(s)); assert.strictEqual(s.ended, 'win');
   assert.ok(E.goEndless(s)); assert.strictEqual(s.ended, null); E.nextWeek(s); s.week = 20; assert.ok(E.rentDue(s) > D.LOCATIONS[0].rent[11], 'endless fee keeps climbing');
 });
-t('pool tiers gate stock, and the free pool is tier ≤1', () => {
-  assert.strictEqual(E.maxTier({ tier: 3 }, false), 1); assert.strictEqual(E.maxTier({ tier: 3 }, true), 3); assert.strictEqual(E.maxTier({ tier: 1 }, true), 1);
+t('pool tiers gate stock by progression, and tier 3 opens the whole pool', () => {
+  assert.strictEqual(E.maxTier({ tier: 3 }, true), 3); assert.strictEqual(E.maxTier({ tier: 0 }, true), 0); assert.strictEqual(E.maxTier({ tier: 1 }, true), 1);
   assert.ok(E.symbolPool(1).length >= 60 && E.symbolPool(1).length < 120); assert.strictEqual(E.symbolPool(3).length, 120); assert.strictEqual(E.charmPool(3).length, 80);
   const r = E.newRun({ seed: 1, tier: 0 }); for (let i = 0; i < 40; i++) { E.browse(r); for (const id of r.offers) assert.strictEqual(E.SYM[id].tier, 0); E.skipOffer(r); if (r.phase !== 'market') { E.payRent(r); if (r.ended) break; E.nextWeek(r); } }
 });

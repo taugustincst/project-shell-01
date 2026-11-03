@@ -1,10 +1,9 @@
 /* Open Stall — UI, save, flow. The rules live in engine.js. */
 (function () {
 'use strict';
-const E = window.OS, D = E.D, B = window.OS_BILLING || window.KTL_BILLING;
+const E = window.OS, D = E.D;
 const VERSION = '1.0.0', SAVE_KEY = 'openstall.v1', BACKUP_KEY = 'openstall.v1.backup';
 const $ = id => document.getElementById(id);
-const DEV = new URLSearchParams(location.search).get('dev') === '1';
 const ICONS = { apple: '🍎', pear: '🍐', plum: '🫐', strawberry: '🍓', blackberry: '🫐', cherry: '🍒', lemon: '🍋', rhubarb: '🌱', carrot: '🥕', potato: '🥔', onion: '🧅', pumpkin: '🎃', tomato: '🍅', lettuce: '🥬', mushroom: '🍄', garlic: '🧄', basil: '🌿', mint: '🌿', chilli: '🌶', beetroot: '🟣',
   loaf: '🍞', sourdough: '🥖', scone: '🧁', pie: '🥧', sausageroll: '🌭', croissant: '🥐', cake: '🍰', brownie: '🍫', flapjack: '🍯', bun: '🥯', pasty: '🥟', pretzel: '🥨', gingerbread: '🍪', biscuit: '🍪', muffin: '🧁', baguette: '🥖', tart: '🥧', cheesestraw: '🧀', focaccia: '🫓', crumpet: '🫓',
   jam: '🫙', marmalade: '🍊', honey: '🍯', chutney: '🫙', pickles: '🥒', curd: '🍋', cider: '🍺', juice: '🧃', tea: '🍵', coffee: '☕', cordial: '🍶', hotsauce: '🌶', mustard: '🫙', oil: '🫒', vinegar: '🍾', jelly: '🫐', relish: '🍅', driedapple: '🍎', syrup: '🍁', kombucha: '🧉',
@@ -17,13 +16,14 @@ const ico = id => ICONS[id] || '📦';
 /* ---------- profile ---------- */
 let P = null, R = null, selLoc = 'green';
 const num = (v, d, lo, hi) => { v = +v; return isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d; };
-function freshMeta() { return { tier: 0, seasons: 0, wins: 0, winsBy: {}, bestWeek: 0, journal: {}, unlocked: false, combosEver: 0, bestBrowse: 0 }; }
+function freshMeta() { return { tier: 0, seasons: 0, wins: 0, winsBy: {}, bestWeek: 0, journal: {}, unlocked: true, combosEver: 0, bestBrowse: 0 }; }
 function sanitizeMeta(m) {
   m = (m && typeof m === 'object') ? m : {}; const o = freshMeta();
   o.tier = Math.round(num(m.tier, 0, 0, 3)); o.seasons = Math.round(num(m.seasons, 0, 0, 1e6)); o.wins = Math.round(num(m.wins, 0, 0, 1e6)); o.bestWeek = Math.round(num(m.bestWeek, 0, 0, 999)); o.combosEver = Math.round(num(m.combosEver, 0, 0, 1e9)); o.bestBrowse = Math.round(num(m.bestBrowse, 0, 0, 1e9));
   if (m.winsBy && typeof m.winsBy === 'object') for (const k in m.winsBy) if (E.LOC[k]) o.winsBy[k] = Math.round(num(m.winsBy[k], 0, 0, 1e6));
   if (m.journal && typeof m.journal === 'object') { let n = 0; for (const k in m.journal) { if (n++ > 2000) break; const j = m.journal[k]; if (j && typeof j.text === 'string') o.journal[String(k).slice(0, 60)] = { text: j.text.slice(0, 200), n: Math.round(num(j.n, 1, 1, 1e9)), sym: typeof j.sym === 'string' && E.SYM[j.sym] ? j.sym : null }; } }
-  o.unlocked = m.unlocked === true; return o;
+  // The whole game is included: every profile, old or new, is fully open whatever its save says.
+  o.unlocked = true; return o;
 }
 function sanitizeSettings(x) { x = (x && typeof x === 'object') ? x : {}; return { large: x.large === true, motion: x.motion === true, contrast: x.contrast === true }; }
 function load() {
@@ -33,7 +33,7 @@ function load() {
   if (R && !P.meta.unlocked && !E.LOC[R.loc].free) R = null;
 }
 function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify({ v: 1, run: R, meta: P.meta, settings: P.settings })); } catch (e) { } }
-function poolTier() { return E.maxTier(P.meta, P.meta.unlocked || DEV); }
+function poolTier() { return E.maxTier(P.meta, P.meta.unlocked); }
 
 /* ---------- helpers ---------- */
 let toastT = 0; function toast(m) { const t = $('toast'); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 2400); }
@@ -46,10 +46,9 @@ function journalKey(c) { return c.sym + ':' + c.rule + ':' + c.with; }
 function renderTitle() {
   const list = $('loc-list'); list.innerHTML = '';
   for (const L of D.LOCATIONS) {
-    const locked = !L.free && !(P.meta.unlocked || DEV); const gated = L.tier === 2 && !(P.meta.winsBy.harbour > 0 || P.meta.winsBy.green > 0);
-    const b = document.createElement('button'); b.className = 'loc' + (selLoc === L.id ? ' sel' : '') + (locked ? ' locked' : '');
-    b.innerHTML = `<b></b><span></span>`; b.querySelector('b').textContent = L.name + (locked ? ' · needs the whole market' : '') + (P.meta.winsBy[L.id] ? ` · bought ${P.meta.winsBy[L.id]}×` : '');
-    b.querySelector('span').textContent = L.desc; b.onclick = () => { if (locked) { toast('Unlock the whole market to trade here.'); return; } selLoc = L.id; renderTitle(); };
+    const b = document.createElement('button'); b.className = 'loc' + (selLoc === L.id ? ' sel' : '');
+    b.innerHTML = `<b></b><span></span>`; b.querySelector('b').textContent = L.name + (P.meta.winsBy[L.id] ? ` · bought ${P.meta.winsBy[L.id]}×` : '');
+    b.querySelector('span').textContent = L.desc; b.onclick = () => { selLoc = L.id; renderTitle(); };
     list.appendChild(b);
   }
   $('btn-continue').hidden = !R;
@@ -58,7 +57,6 @@ function renderTitle() {
 }
 function startRun() {
   if (R) { if (!confirm('Abandon the current season and start a new one?')) return; }
-  const L = E.LOC[selLoc]; if (!L.free && !(P.meta.unlocked || DEV)) { toast('Unlock the whole market to trade here.'); return; }
   R = E.newRun({ loc: selLoc, tier: poolTier() }); save(); enterMarket();
 }
 function enterMarket() { screen('screen-market'); setTab('stall'); renderMarket(true); }
@@ -140,8 +138,8 @@ function endSeason() {
   $('end-title').textContent = won ? 'The shop is yours' : R.endless ? 'The Free Market closes' : (R.ledger.some(l => l.type === 'seasonover') ? 'The season ends' : 'Gone bust');
   $('end-text').textContent = won ? `You counted out ${E.shopPrice(R)} coins on the landlord's desk and he gave you a key with a brown label. There is a bell over the door. It rings when you open it.` : R.endless ? `The fee finally outran the stall after ${R.week} weeks. Everyone on the square came to the last day.` : R.ledger.some(l => l.type === 'seasonover') ? `Twelve Saturdays and the shop is still for sale. You know what sells now. Next season.` : `Week ${R.week}: the fee was ${E.rentDue(R)} and the tin held ${R.coins}. The landlord was polite about it. Next season.`;
   $('end-stats').innerHTML = [['browses', R.stats.browses], ['earned', R.stats.earned], ['best browse', R.stats.best], ['combos found', Object.keys(R.combos).length], ['fees paid', R.stats.rentPaid], ['charms', R.charms.length]].map(p => `<div class="stat"><b>${p[1]}</b><span>${p[0]}</span></div>`).join('');
-  $('end-unlock').textContent = won && !(P.meta.unlocked || DEV) ? 'The Harbour Market and the City Square are waiting, with the endless Free Market and the rest of the stock pool, in the whole-market unlock.' : won && P.meta.tier >= 2 ? 'New stock and charms are in the pool.' : '';
-  $('btn-end-free').hidden = !(won && (P.meta.unlocked || DEV) && !R.endless);
+  $('end-unlock').textContent = won && P.meta.tier >= 2 ? 'New stock and charms are in the pool.' : '';
+  $('btn-end-free').hidden = !(won && !R.endless);
   save(); show('modal-end');
 }
 
@@ -171,11 +169,6 @@ function info(s, it) {
   $('btn-info-sell').hidden = !it || R.phase === 'over'; $('btn-info-sell').textContent = it ? `Sell for ${E.sellPrice(R, it)}` : ''; show('modal-info');
 }
 
-/* ---------- unlock ---------- */
-function grantUnlock(src) { P.meta.unlocked = true; save(); toast(src === 'restore' ? 'Purchase restored. The whole market is open.' : 'The whole market is open.'); renderTitle(); if (R) renderMarket(false); }
-async function doUnlock() { if (P.meta.unlocked) { toast('Already unlocked.'); return; } if (DEV) { grantUnlock('dev'); return; } const r = await B.unlock(); if (r.ok) grantUnlock('buy'); else if (r.reason === 'unavailable') toast('Unlocking is available in the Google Play version of Open Stall.'); else if (r.reason === 'cancelled') toast('No purchase made.'); else toast('The purchase could not be completed. Try again, or Restore purchase.'); }
-async function doRestore() { const r = await B.restore(); if (r.ok) grantUnlock('restore'); else if (r.reason === 'unavailable') toast('Restore is available in the Google Play version.'); else toast('No purchase found for this Google account.'); }
-
 /* ---------- settings & wiring ---------- */
 function applySettings() { const s = P.settings; for (const k of ['large', 'motion', 'contrast']) { document.documentElement.classList.toggle(k, s[k]); $('opt-' + k).checked = s[k]; } }
 function init() {
@@ -194,9 +187,8 @@ function init() {
   $('hdr-wx').onclick = () => toast(`${D.WEATHER[R.weather].name}: ${D.WEATHER[R.weather].desc} Tomorrow looks ${D.WEATHER[R.forecast].name.toLowerCase()}.`);
   $('event-strip').onclick = () => toast(E.EVENT[R.event].text);
   for (const k of ['large', 'motion', 'contrast']) $('opt-' + k).addEventListener('change', e => { P.settings[k] = e.target.checked; applySettings(); save(); });
-  $('btn-unlock').onclick = doUnlock; $('btn-restore').onclick = doRestore;
   $('btn-abandon').onclick = () => { if (R && confirm('Abandon this season? Your journal and unlocks stay.')) { R = null; save(); screen('screen-title'); renderTitle(); } };
-  $('btn-reset').onclick = () => { if (confirm('Forget everything: journal, unlocked stock, seasons? Your purchase can be restored.')) { const u = P.meta.unlocked; P.meta = freshMeta(); P.meta.unlocked = u; R = null; save(); screen('screen-title'); renderTitle(); } };
+  $('btn-reset').onclick = () => { if (confirm('Forget everything: journal, unlocked stock, seasons?')) { P.meta = freshMeta(); R = null; save(); screen('screen-title'); renderTitle(); } };
   renderTitle(); $('app').hidden = false; if (R) enterMarket(); else screen('screen-title');
   if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => { });
   window.addEventListener('pagehide', save); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') save(); });
@@ -206,7 +198,7 @@ window.__openstall = {
   start(loc, seed) { R = E.newRun({ loc: loc || 'green', seed, tier: poolTier() }); save(); enterMarket(); return R; },
   setWeek(w) { R.week = Math.max(1, w | 0); R.phase = 'market'; R.spin = 0; R.offers = null; renderMarket(true); }, setWeather(w) { if (D.WEATHER[w]) { R.weather = w; renderMarket(false); } },
   give(c) { R.coins = +c; renderMarket(false); }, stock(ids) { for (const id of ids) E.addStock(R, id); renderMarket(false); }, charm(id) { if (E.CHARM[id] && R.charms.indexOf(id) < 0) R.charms.push(id); renderMarket(false); },
-  browse: doBrowse, take(i) { E.takeOffer(R, i); hide('modal-offer'); afterOffer(); }, skip() { E.skipOffer(R); hide('modal-offer'); afterOffer(); }, pay: payAndSleep, unlock() { grantUnlock('dev'); }, setTier(t) { P.meta.tier = t; save(); renderTitle(); },
+  browse: doBrowse, take(i) { E.takeOffer(R, i); hide('modal-offer'); afterOffer(); }, skip() { E.skipOffer(R); hide('modal-offer'); afterOffer(); }, pay: payAndSleep, setTier(t) { P.meta.tier = t; save(); renderTitle(); },
   save, reset() { localStorage.removeItem(SAVE_KEY); location.reload(); }, setTab, render: () => renderMarket(true)
 };
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();

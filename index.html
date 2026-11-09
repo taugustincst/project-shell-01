@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#f6efe3">
-<meta name="description" content="Open Stall: a cozy market-stall builder. Stock a five-shelf stall, discover combos, pay the rent, buy the shop.">
+<meta name="description" content="Open Stall: a cozy market-stall builder. Lay out a fifteen-space stall, discover combos, pay the fee, buy the shop.">
 <title>Open Stall</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png">
@@ -34,11 +34,13 @@
     <div class="money-row">
       <div class="money"><span class="lbl">Coins</span><b id="hdr-coins">15</b></div>
       <div class="money"><span class="lbl">Fee due</span><b id="hdr-rent">22</b></div>
-      <div class="money"><span class="lbl">The shop</span><b id="hdr-shop">1000</b></div>
+      <div class="money"><span class="lbl">The shop</span><b id="hdr-shop">1300</b></div>
       <div class="money"><span class="lbl">Browses</span><b id="hdr-spins">0 / 5</b></div>
     </div>
     <button class="event-strip" id="event-strip"></button>
     <div class="stall" id="stall" aria-label="The stall"></div>
+    <div class="sel-bar" id="sel-bar" hidden><span id="sel-text"></span><span class="sel-btns"><button class="btn small" id="btn-sel-info">Rule</button><button class="btn small" id="btn-sel-box">To the boxes</button><button class="btn small" id="btn-sel-cancel">Done</button></span></div>
+    <div class="boxes" id="boxes" hidden></div>
     <div class="total" id="total" aria-live="polite">Tap <b>Open up</b> and the customers will browse.</div>
     <div class="actions">
       <button class="btn primary big" id="btn-browse">Open up</button>
@@ -50,7 +52,7 @@
     </nav>
     <main class="panels">
       <section id="tab-stall" class="panel active"><div class="card" id="day-card"></div><div class="card" id="ledger-card"></div></section>
-      <section id="tab-stock" class="panel"><p class="muted small">Tap anything to read its rule. Items are laid out at random each browse; if you stock more than fifteen, some stay in the boxes.</p><div id="stock-list" class="grid-list"></div></section>
+      <section id="tab-stock" class="panel"><p class="muted small">Everything you own. Tap anything to read its rule. Lay the stall out on the Stall tab: tap an item, then tap a space. What is not on the stall waits in the boxes and takes nothing.</p><div id="stock-list" class="grid-list"></div></section>
       <section id="tab-charms" class="panel"><div id="charm-list"></div></section>
       <section id="tab-journal" class="panel"><div id="journal-list"></div></section>
       <section id="tab-more" class="panel"></section>
@@ -59,6 +61,7 @@
 
   <!-- More (shared) -->
   <section id="more-content" hidden>
+    <div class="card" id="unlock-card"></div>
     <div class="card"><h2>Settings</h2>
       <label class="row"><input type="checkbox" id="opt-large"> Large text</label>
       <label class="row"><input type="checkbox" id="opt-motion"> Reduce motion</label>
@@ -81,7 +84,7 @@
   <div class="sheet-date" id="dusk-sub">Dusk</div><h2 id="dusk-title">The day's ledger</h2>
   <div id="dusk-ledger" class="ledger"></div>
   <h3>The wholesaler's charms</h3><div id="dusk-charms"></div>
-  <h3>Sell stock</h3><p class="muted small">Clear the back of the stall. Tap an item to sell it.</p><div id="dusk-sell" class="grid-list small-grid"></div>
+  <h3>Sell stock</h3><p class="muted small">The wholesaler buys stock back for half what it cost. Tap an item to sell it.</p><div id="dusk-sell" class="grid-list small-grid"></div>
   <div class="row-btns"><button class="btn primary" id="btn-pay">Pay the fee and go home</button><button class="btn gold" id="btn-dusk-shop" hidden>Buy the shop</button></div>
 </div></div>
 <div class="modal" id="modal-info" hidden role="dialog" aria-modal="true"><div class="sheet">
@@ -92,7 +95,16 @@
   <div class="sheet-date" id="end-sub"></div><h2 id="end-title"></h2><p id="end-text"></p><div class="stats" id="end-stats"></div><p class="muted small" id="end-unlock"></p>
   <div class="row-btns"><button class="btn primary" id="btn-end-ok">Back to the market gate</button><button class="btn" id="btn-end-free" hidden>Keep trading: Free Market</button></div>
 </div></div>
+<div class="modal" id="modal-unlock" hidden role="dialog" aria-modal="true"><div class="sheet">
+  <div class="sheet-date" id="u-sub">The full game</div><h2>The whole market</h2>
+  <p>Village Green is yours to play free, for as many seasons as you like. The full game adds:</p>
+  <ul class="unlock-list"><li>Harbour Market, where it rains more days than not</li><li>City Square, four browses a day and a hurry</li><li>The Free Market after every shop you buy, for as long as the stall lasts</li><li>The rest of the stock and charms: 36 kinds of stock and 28 charms Village Green never sees</li></ul>
+  <p class="muted">One purchase through Google Play. No ads and nothing else to buy.</p>
+  <p class="note" id="u-note" hidden></p>
+  <button class="btn primary" id="u-buy">Unlock the full game</button>
+  <div class="row-btns"><button class="btn" id="u-restore">Restore purchase</button><button class="btn" id="u-later">Not now</button></div>
+</div></div>
 <div id="toast" class="toast" hidden></div>
-<script src="js/data.js"></script><script src="js/engine.js"></script><script src="js/game.js"></script>
+<script src="js/data.js"></script><script src="js/engine.js"></script><script src="js/billing.js"></script><script src="js/game.js"></script>
 </body>
 </html>

@@ -14,11 +14,11 @@ const WEATHER_ORDER = ['sun', 'rain', 'wind', 'fog', 'frost'];
 
 /* Locations: difficulty tiers. rent[w] is the stall fee due at the end of week w (1-based). shop = price of the shop on the square. */
 const LOCATIONS = [
-  { id: 'green', name: 'Village Green', tier: 0, free: true, spins: 5, offers: 3, rent: [22, 34, 50, 70, 92, 120, 152, 190, 235, 290, 355, 430], shop: 1000, start: 15,
+  { id: 'green', name: 'Village Green', tier: 0, free: true, spins: 5, offers: 3, rent: [22, 34, 50, 70, 92, 120, 152, 190, 235, 290, 355, 430], shop: 1300, start: 15,
     desc: 'A trestle table by the war memorial. Twelve Saturdays, a shop with a bell over the door for sale on the square.' },
-  { id: 'harbour', name: 'Harbour Market', tier: 1, free: false, spins: 5, offers: 3, rent: [25, 39, 58, 80, 106, 138, 175, 218, 270, 334, 408, 495], shop: 1150, start: 15, weatherBias: { rain: 2, wind: 2, fog: 1.5 },
+  { id: 'harbour', name: 'Harbour Market', tier: 1, free: false, spins: 5, offers: 3, rent: [25, 39, 58, 80, 106, 138, 175, 218, 270, 334, 408, 495], shop: 1450, start: 15, weatherBias: { rain: 2, wind: 2, fog: 1.5 },
     desc: 'Fish crates and gulls. Rain more days than not. The chandlery on the quay is for sale.' },
-  { id: 'square', name: 'City Square', tier: 2, free: false, spins: 4, offers: 3, rent: [22, 34, 50, 70, 92, 120, 152, 190, 235, 290, 355, 430], shop: 1200, start: 25, weatherBias: { sun: 1.5, frost: 1.5 },
+  { id: 'square', name: 'City Square', tier: 2, free: false, spins: 4, offers: 3, rent: [22, 34, 50, 70, 92, 120, 152, 190, 235, 290, 355, 430], shop: 950, start: 25, weatherBias: { sun: 1.5, frost: 1.5 },
     desc: 'Four browses a day instead of five: the city is in a hurry. The corner shop with the green tiles is for sale, and so is everything else.' }
 ];
 

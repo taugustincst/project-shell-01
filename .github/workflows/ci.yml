@@ -1,7 +1,6 @@
 name: CI
 on:
   push:
-    branches-ignore: [main]
   pull_request:
   workflow_call:
 permissions:
@@ -10,14 +9,19 @@ jobs:
   test:
     name: Engine tests, balance harness and smoke test
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
       - run: node tests/engine.test.js
-      - run: node sim/harness.js 50 green 1
-      - run: npm install --no-audit --no-fund
+      - name: Balance harness, Village Green (the free market; at least 15 viable archetypes)
+        run: node sim/harness.js 50 green 1
+      - name: Balance harness, Harbour Market and City Square (at least 12 each)
+        run: |
+          MIN_VIABLE=12 node sim/harness.js 30 harbour 3
+          MIN_VIABLE=12 node sim/harness.js 30 square 3
+      - run: npm ci --no-audit --no-fund
       - run: npx playwright install --with-deps chromium
       - run: node tests/smoke.js

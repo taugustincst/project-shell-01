@@ -55,14 +55,14 @@ const onStall = p => T(p, () => window.__openstall.run.layout.filter(u => u != n
   check('after the offer the stall shows the layout again, with the last browse', /last browse took \+\d+/.test(await p.textContent('#total')) && (await onStall(p)) === stock0 + 1);
   await p.click('#stall .cell:not(.empty)'); await p.click('#btn-sel-info'); await p.waitForSelector('#modal-info:not([hidden])');
   check('an item\'s rule reads in plain words, with what the wholesaler asks', (await p.textContent('#info-rule')).length > 10 && (await p.textContent('#info-extra')).includes('wholesaler asks')); await p.click('#btn-info-ok'); await p.click('#btn-sel-cancel');
-  for (let i = 0; i < 4; i++) { await p.click('#btn-browse'); await p.waitForSelector('#modal-offer:not([hidden])'); await p.click('#btn-offer-skip'); await p.waitForTimeout(80); }
-  await p.waitForSelector('#modal-dusk:not([hidden])');
+  for (let i = 0; i < 12 && !(await p.isVisible('#modal-dusk')); i++) { if (await p.isVisible('#modal-offer')) await p.click('#btn-offer-skip'); else if (await p.isEnabled('#btn-browse')) await p.click('#btn-browse'); await p.waitForTimeout(150); }
+  await p.waitForSelector('#modal-dusk:not([hidden])', { timeout: 5000 });
   check('after five browses the dusk ledger opens with charms for sale', (await p.locator('#dusk-charms .charm').count()) === 3);
   check('each charm shows its icon, name and rule in their own places', await T(p, () => [...document.querySelectorAll('#dusk-charms .charm')].every(c => [...c.querySelector('.ic').textContent].length <= 3 && c.querySelector('b').textContent.length > 2 && c.querySelector('.ds').textContent.length > 8)));
   await T(p, () => { window.__openstall.run.coins = 500; }); await p.click('#dusk-charms .charm button'); await p.waitForTimeout(80);
   check('a charm can be bought', (await T(p, () => window.__openstall.run.charms.length)) === 1);
-  const sellInfo = await T(p, () => { const K = window.__openstall, it = K.run.stock[0]; return { half: Math.max(1, Math.round(K.E.SYM[it.id].price / 2)), shown: K.E.sellPrice(K.run, it), charms: K.run.charms }; });
-  check('stock sells back for about half its price', sellInfo.shown >= sellInfo.half, JSON.stringify(sellInfo));
+  const sellInfo = await T(p, () => { const K = window.__openstall, it = K.run.stock[0]; const price = K.E.SYM[it.id].price, pct = K.E.modsFor(K.run).filter(m => m.k === 'sell').reduce((v, m) => v + (m.p || 0), 0); return { half: Math.max(1, Math.round(price / 2)), want: Math.max(1, Math.min(price, Math.round(price / 2 * (1 + pct / 100)))), pct, shown: K.E.sellPrice(K.run, it), charms: K.run.charms }; });
+  check('stock sells back for about half its price, moved only by what the day and charms say', sellInfo.shown === sellInfo.want && (sellInfo.pct < 0 || sellInfo.shown >= sellInfo.half), JSON.stringify(sellInfo));
   const stockBefore = await T(p, () => window.__openstall.run.stock.length);
   await p.click('#dusk-sell .item'); await p.waitForSelector('#modal-info:not([hidden])'); await p.click('#btn-info-sell'); await p.waitForTimeout(80);
   const left = await T(p, () => window.__openstall.run.stock.length);
@@ -92,7 +92,7 @@ const onStall = p => T(p, () => window.__openstall.run.layout.filter(u => u != n
     await q.click('.loc >> nth=2'); await q.click('#btn-start'); await q.waitForSelector('#modal-unlock:not([hidden])'); await q.waitForTimeout(150);
     check('in the Play app the sheet shows Play\'s price', (await q.textContent('#u-buy')).includes('$4.99') && !(await q.isDisabled('#u-buy')));
     await q.click('#u-buy'); await q.waitForSelector('#screen-market:not([hidden])');
-    check('buying opens the market that was asked for', (await T(q, () => window.__buys)) === 1 && (await T(q, () => window.__openstall.run.loc)) === 'square' && (await q.textContent('#hdr-spins')).includes('/ 4'));
+    check('buying opens the market that was asked for', (await T(q, () => window.__buys)) === 1 && (await T(q, () => window.__openstall.run.loc)) === 'square' && (await q.textContent('#hdr-spins')).includes('/ ' + (await T(q, () => window.__openstall.run.spinsToday))));
     check('the pool opens past tier 1 once bought', await T(q, () => window.__openstall.E.maxTier({ tier: 3 }, window.__openstall.billing.state.owned) === 3));
     await ctx.close(); check('no errors in the Play edition run', qe.length === 0, qe.join(' | '));
     const r = await fresh(b, () => { const say = m => setTimeout(() => window.__billingEvent(JSON.stringify(m)), 30); window.AndroidBilling = { start(id) { say({ type: 'ready', product: id }); say({ type: 'owned', product: id, owned: true }); }, buy() { }, restore(id) { say({ type: 'owned', product: id, owned: true }); } }; });

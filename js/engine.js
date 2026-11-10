@@ -84,7 +84,8 @@ function newRun(opts) {
   const r = {
     v: 1, seed: (opts.seed | 0) || ((Date.now() ^ (Math.random() * 1e9)) | 0), loc: loc.id, tier: Math.max(0, Math.min(3, opts.tier | 0)),
     week: 1, spin: 0, spinsToday: loc.spins, coins: loc.start, stock: [], charms: [], weather: 'sun', forecast: 'sun', event: 'nothing',
-    offers: null, charmOffers: [], rerolls: 0, ended: null, uid: 1, ledger: [], last: null, combos: {}, stats: { browses: 0, earned: 0, best: 0, sold: 0, rentPaid: 0 }, phase: 'dawn'
+    offers: null, charmOffers: [], rerolls: 0, ended: null, uid: 1, ledger: [], last: null, combos: {}, stats: { browses: 0, earned: 0, best: 0, sold: 0, rentPaid: 0, spent: 0 }, phase: 'dawn',
+    layout: new Array(CELLS).fill(null)
   };
   const starters = (opts.starters || STARTERS).map(id => SYM[id] ? id : null).filter(Boolean);
   for (const id of starters) addStock(r, id);
@@ -92,7 +93,36 @@ function newRun(opts) {
   dawn(r);
   return r;
 }
-function addStock(r, id) { if (!SYM[id]) return null; const it = { id, age: 0, uid: r.uid++ }; r.stock.push(it); return it; }
+function addStock(r, id) { if (!SYM[id]) return null; const it = { id, age: 0, uid: r.uid++ }; r.stock.push(it); autoPlace(r, it.uid); return it; }
+
+/* ---------- the stall's layout: the player arranges it ----------
+   r.layout holds the uid of the item in each of the fifteen spaces (null = empty). Stock that is not on the
+   stall waits in the boxes. New stock goes into the first empty space; the player moves things around with
+   move() and box(). The layout stays put from browse to browse, so what is next to what is the player's doing. */
+function fixLayout(r) {
+  if (!Array.isArray(r.layout) || r.layout.length !== CELLS) r.layout = new Array(CELLS).fill(null);
+  const have = {}; for (const it of r.stock) have[it.uid] = true; const seen = {};
+  for (let i = 0; i < CELLS; i++) { const u = r.layout[i]; if (u == null || !have[u] || seen[u]) r.layout[i] = null; else seen[u] = true; }
+  return r.layout;
+}
+function autoPlace(r, uid) { fixLayout(r); if (r.layout.indexOf(uid) >= 0) return true; const e = r.layout.indexOf(null); if (e < 0) return false; r.layout[e] = uid; return true; }
+function canArrange(r) { return !r.ended && r.phase !== 'over' && !r.offers; }
+/* Put an item in a space. From another space it swaps with whatever is there; from the boxes it sends that to the boxes. */
+function move(r, uid, cell) {
+  if (!canArrange(r) || !(cell >= 0 && cell < CELLS) || !r.stock.some(it => it.uid === uid)) return false;
+  fixLayout(r); const from = r.layout.indexOf(uid), occ = r.layout[cell];
+  if (from === cell) return true;
+  r.layout[cell] = uid; if (from >= 0) r.layout[from] = occ;
+  return true;
+}
+/* Swap two spaces (either may be empty). */
+function swapCells(r, a, b) {
+  if (!canArrange(r) || !(a >= 0 && a < CELLS) || !(b >= 0 && b < CELLS)) return false;
+  fixLayout(r); const t = r.layout[a]; r.layout[a] = r.layout[b]; r.layout[b] = t; return true;
+}
+function box(r, uid) { if (!canArrange(r)) return false; fixLayout(r); const i = r.layout.indexOf(uid); if (i < 0) return false; r.layout[i] = null; return true; }
+function boxed(r) { fixLayout(r); const on = {}; for (const u of r.layout) if (u != null) on[u] = true; return r.stock.filter(it => !on[it.uid]); }
+function onStall(r) { fixLayout(r); const by = {}; for (const it of r.stock) by[it.uid] = it; return r.layout.map(u => u == null ? null : by[u]); }
 function rollWeather(r) {
   const loc = LOC[r.loc], lock = modsFor(r).find(m => m.k === 'weatherlock');
   if (lock) return lock.w;
@@ -133,14 +163,15 @@ function neighbours(i) { const c = i % COLS, rw = Math.floor(i / COLS), out = []
 const NB = []; for (let i = 0; i < CELLS; i++) NB.push(neighbours(i));
 function rowCells(i) { const rw = Math.floor(i / COLS), out = []; for (let c = 0; c < COLS; c++) out.push(rw * COLS + c); return out; }
 
-function browse(r) {
-  if (r.ended || r.phase !== 'market' || r.offers) return null;
+/* What the stall pays for one browse as it is laid out. preview = true scores a copy, rolls no dice and
+   changes nothing (the chance to multiply is left out), so the game can show the player what an arrangement
+   is worth before the customers come. */
+function scoreStall(r, preview) {
   const mods = modsFor(r), wx = r.weather, week = r.week;
   const adjM = modProd(mods, 'adjmult'), eatM = modProd(mods, 'eatmult'), ageM = modProd(mods, 'agemult'), spawnM = modProd(mods, 'spawnmult'), rowM = modProd(mods, 'rowmult'), loneM = modProd(mods, 'lonemult'), weekM = modProd(mods, 'weekmult'), soM = modProd(mods, 'selloutmult');
   const refund = modSum(mods, 'refund'), minPay = Math.max(0, modSum(mods, 'min')), emptyPay = modSum(mods, 'emptypay'), flat = modSum(mods, 'flat');
-  // lay out the stall
-  const stock = shuffle(r, r.stock.slice()); const placed = stock.slice(0, CELLS); const grid = new Array(CELLS).fill(null);
-  const slots = shuffle(r, Array.from({ length: CELLS }, (_, i) => i)); placed.forEach((it, k) => { grid[slots[k]] = it; });
+  // the stall as the player laid it out (copies, so a preview changes nothing)
+  const real = onStall(r), grid = real.map(it => it ? { id: it.id, age: it.age, uid: it.uid } : null);
   const symAt = i => grid[i] ? SYM[grid[i].id] : null;
   const combos = [], removed = [], spawned = [];
   // phase 1: transformations
@@ -163,7 +194,7 @@ function browse(r) {
       case 'empty': { let c = 0; for (const j of NB[i]) if (!grid[j]) c++; if (c) { add = c * rl.n; fired = `${s.name} with ${c} empty space${c > 1 ? 's' : ''}`; } break; }
       case 'row': { let c = 0; for (const j of rowCells(i)) if (symAt(j) && hasTag(symAt(j), rl.t)) c++; if (c >= 3) { add = rl.n * rowM; fired = `${s.name} in a row of ${tagName(rl.t)}`; } break; }
       case 'week': { const n = Math.floor(week / 2) * rl.n * weekM; if (n > 0) { add = n; fired = `${s.name} in week ${week}`; } break; }
-      case 'spawn': if (rand(r) < Math.min(0.95, rl.p * spawnM)) { spawned.push(rl.s); fired = `${s.name} brought a ${SYM[rl.s].name}`; } break;
+      case 'spawn': if (!preview && rand(r) < Math.min(0.95, rl.p * spawnM)) { spawned.push(rl.s); fired = `${s.name} brought a ${SYM[rl.s].name}`; } break;
       case 'lone': if (!NB[i].some(j => symAt(j) && symAt(j).fam === s.fam)) { add = rl.n * loneM; fired = `${s.name} alone`; } break;
     }
     if (fired) combos.push({ sym: s.id, rule: rl.k, with: rl.t || rl.w || rl.s || '', text: fired });
@@ -183,8 +214,15 @@ function browse(r) {
   }
   for (const m of mods) if (m.k === 'countpay') total += m.n * r.stock.filter(it => hasTag(SYM[it.id], m.t)).length;
   total += flat; total = Math.round(total * spinM);
-  // apply
-  for (const it of r.stock) if (placed.indexOf(it) >= 0) it.age++;
+  return { grid, real, cellPay: cellPay.map(v => Math.round(v * spinM)), total, combos, removed, spawned, spinM, wx, isFirst, isLast };
+}
+function preview(r) { const s = scoreStall(r, true); return { total: s.total, cellPay: s.cellPay }; }
+function browse(r) {
+  if (r.ended || r.phase !== 'market' || r.offers) return null;
+  const sc = scoreStall(r, false), grid = sc.grid, real = sc.real, combos = sc.combos, spawned = sc.spawned, total = sc.total, cellPay = sc.cellPay, wx = sc.wx, isFirst = sc.isFirst, isLast = sc.isLast, spinM = sc.spinM;
+  const removedUids = sc.removed.map(it => it.uid), removed = [];
+  // apply: what was turned stays turned, everything out on the stall ages, what sold leaves the stock and its space
+  for (let i = 0; i < CELLS; i++) { const it = real[i]; if (!it) continue; if (grid[i].id !== it.id) { it.id = grid[i].id; it.age = 0; } else it.age++; if (removedUids.indexOf(it.uid) >= 0) { removed.push(it); r.layout[i] = null; } }
   r.stock = r.stock.filter(it => removed.indexOf(it) < 0);
   for (const id of spawned) addStock(r, id);
   r.coins += total; r.stats.browses++; r.stats.earned += total; if (total > r.stats.best) r.stats.best = total;
@@ -195,7 +233,9 @@ function browse(r) {
   makeOffers(r);
   return result;
 }
-function takeOffer(r, i) { if (!r.offers) return false; const id = r.offers[i]; if (!id) return false; addStock(r, id); r.offers = null; afterOffer(r); return true; }
+/* Stock costs its price at the wholesaler; selling it back returns half. */
+function buyPrice(r, id) { return SYM[id] ? SYM[id].price : 0; }
+function takeOffer(r, i) { if (!r.offers) return false; const id = r.offers[i]; if (!id) return false; const cost = buyPrice(r, id); if (r.coins < cost) return false; r.coins -= cost; r.stats.spent += cost; addStock(r, id); r.offers = null; afterOffer(r); return true; }
 function skipOffer(r) { if (!r.offers) return false; r.offers = null; afterOffer(r); return true; }
 function rerollOffers(r) { if (!r.offers || r.rerolls <= 0) return false; r.rerolls--; makeOffers(r); return true; }
 function afterOffer(r) { if (r.spin >= r.spinsToday) { r.phase = 'dusk'; makeCharmOffers(r); } }
@@ -204,8 +244,8 @@ function afterOffer(r) { if (r.spin >= r.spinsToday) { r.phase = 'dusk'; makeCha
 function baseRent(r) { const rents = LOC[r.loc].rent; return r.week <= rents.length ? rents[r.week - 1] : Math.round(rents[rents.length - 1] * Math.pow(1.2, r.week - rents.length)); }
 function rentDue(r) { const mods = modsFor(r); const pct = modSum(mods, 'rent', () => true); return Math.max(0, Math.round(baseRent(r) * (1 - Math.min(90, pct) / 100))); }
 function shopPrice(r) { return LOC[r.loc].shop; }
-function sellPrice(r, it) { const s = SYM[it.id]; const pct = modSum(modsFor(r), 'sell', () => true); return Math.max(1, Math.round(s.price * (1 + pct / 100))); }
-function sell(r, uid) { const i = r.stock.findIndex(it => it.uid === uid); if (i < 0 || r.ended) return false; const v = sellPrice(r, r.stock[i]); r.coins += v; r.stats.sold += v; r.stock.splice(i, 1); return v; }
+function sellPrice(r, it) { const s = SYM[it.id]; const pct = modSum(modsFor(r), 'sell', () => true); return Math.max(1, Math.min(s.price, Math.round(s.price / 2 * (1 + pct / 100)))); }
+function sell(r, uid) { const i = r.stock.findIndex(it => it.uid === uid); if (i < 0 || r.ended || r.offers) return false; const v = sellPrice(r, r.stock[i]); r.coins += v; r.stats.sold += v; r.stock.splice(i, 1); fixLayout(r); return v; }
 function buyCharm(r, i) { const id = r.charmOffers[i]; if (!id || r.ended || r.phase !== 'dusk') return false; const c = CHARM[id]; if (r.coins < c.price || r.charms.indexOf(id) >= 0) return false; r.coins -= c.price; r.charms.push(id); r.charmOffers.splice(i, 1); return true; }
 function buyShop(r) { if (r.ended || r.endless || r.coins < shopPrice(r)) return false; r.coins -= shopPrice(r); r.ended = 'win'; r.phase = 'over'; r.ledger.push({ week: r.week, type: 'win' }); return true; }
 /* Free Market: keep trading after the shop is bought; the fee keeps climbing until it cannot be paid. */
@@ -242,11 +282,14 @@ function sanitizeRun(raw) {
   if (raw.stats && typeof raw.stats === 'object') for (const k in r.stats) r.stats[k] = Math.round(num(raw.stats[k], 0, 0, 1e9));
   if (raw.combos && typeof raw.combos === 'object') for (const k in raw.combos) if (typeof k === 'string' && k.length < 60) r.combos[k] = Math.round(num(raw.combos[k], 1, 1, 1e6));
   if (Array.isArray(raw.ledger)) r.ledger = raw.ledger.filter(l => l && typeof l === 'object').slice(-60);
+  // the layout: kept where it is valid; an older save (laid out at random each browse) fills the stall in stock order
+  r.layout = Array.isArray(raw.layout) && raw.layout.length === CELLS ? raw.layout.map(u => (u == null ? null : Math.round(num(u, 0, 0, 1e9)))) : null;
+  fixLayout(r); if (!Array.isArray(raw.layout)) for (const it of r.stock) autoPlace(r, it.uid);
   r.last = null;
   if (r.phase === 'market' && r.spin >= r.spinsToday && !r.offers) { r.phase = 'dusk'; makeCharmOffers(r); }
   return r;
 }
 
-const ENGINE = { D, SYM, CHARM, EVENT, LOC, COLS, ROWS, CELLS, STARTERS, rand, hasTag, ruleText, charmText, maxTier, symbolPool, charmPool, newRun, addStock, dawn, browse, takeOffer, skipOffer, rerollOffers, rentDue, shopPrice, sellPrice, sell, buyCharm, buyShop, goEndless, baseRent, payRent, nextWeek, sanitizeRun, modsFor, offerCount };
+const ENGINE = { D, SYM, CHARM, EVENT, LOC, COLS, ROWS, CELLS, STARTERS, NB, rand, hasTag, ruleText, charmText, maxTier, symbolPool, charmPool, newRun, addStock, dawn, browse, preview, scoreStall, move, swapCells, box, boxed, onStall, fixLayout, canArrange, buyPrice, takeOffer, skipOffer, rerollOffers, rentDue, shopPrice, sellPrice, sell, buyCharm, buyShop, goEndless, baseRent, payRent, nextWeek, sanitizeRun, modsFor, offerCount };
 if (typeof module !== 'undefined' && module.exports) module.exports = ENGINE; else root.OS = ENGINE;
 })(typeof window !== 'undefined' ? window : globalThis);

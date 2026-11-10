@@ -1,6 +1,6 @@
 {
   "name": "open-stall", "version": "1.1.0", "private": true,
   "description": "Open Stall: a cozy market-stall builder packaged for Google Play.",
-  "scripts": { "test": "node tests/engine.test.js && node tests/smoke.js", "tap-through": "node tools/tap-through.js", "harness": "node sim/harness.js 50 green 1 && MIN_VIABLE=12 node sim/harness.js 30 harbour 3 && MIN_VIABLE=12 node sim/harness.js 30 square 3", "icons": "node tools/make-icons.js" },
+  "scripts": { "test": "node tests/engine.test.js && node tests/smoke.js", "tap-through": "node tools/tap-through.js", "harness": "node sim/harness.js 50 green 1 && MIN_VIABLE=12 node sim/harness.js 300 harbour 3 && MIN_VIABLE=12 node sim/harness.js 300 square 3", "icons": "node tools/make-icons.js" },
   "devDependencies": { "playwright": "^1.50.0" }
 }

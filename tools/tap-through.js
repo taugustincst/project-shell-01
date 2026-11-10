@@ -112,10 +112,13 @@ async function measure(sel) {
     var cx=r.left+r.width/2, cy=r.top+r.height/2;
     var top=document.elementFromPoint(cx,cy);
     var visible=r.width>0&&r.height>0&&cx>=0&&cy>=0&&cx<=innerWidth&&cy<=innerHeight;
-    return {cx:cx,cy:cy,w:r.width,h:r.height,visible:visible,onTop:!!top&&(top===el||el.contains(top))};
+    var vv=window.visualViewport||{scale:1,offsetLeft:0,offsetTop:0};
+    return {cx:cx,cy:cy,w:r.width,h:r.height,visible:visible,onTop:!!top&&(top===el||el.contains(top)),vs:vv.scale,vx:vv.offsetLeft,vy:vv.offsetTop};
   })()`);
 }
-const toScreen = (cx, cy) => [Math.round(cx * dpr + offX), Math.round(cy * dpr + offY)];
+// Page coordinates are layout-viewport ones; if the WebView has zoomed or panned the
+// visual viewport (it can after a text-size change), map through it.
+const toScreen = (cx, cy, m) => { const vs = (m && m.vs) || 1, vx = (m && m.vx) || 0, vy = (m && m.vy) || 0; return [Math.round((cx - vx) * vs * dpr + offX), Math.round((cy - vy) * vs * dpr + offY)]; };
 // Wait for the layout to settle (the soft keyboard opening or closing
 // resizes the page), so the tap lands where the element really is.
 async function measureSettled(sel) {
@@ -137,7 +140,7 @@ async function tap(sel, label) {
   const m = await measureSettled(sel);
   if (m.missing) return check(`${label}: on screen`, false, `${sel} not in the page`);
   if (!check(`${label}: visible and not covered`, m.visible && m.onTop, JSON.stringify(m))) return false;
-  const [x, y] = toScreen(m.cx, m.cy);
+  const [x, y] = toScreen(m.cx, m.cy, m);
   const gap = Date.now() - lastTap.t;
   if (gap < 900 && Math.hypot(x - lastTap.x, y - lastTap.y) < 300 * dpr) await sleep(900 - gap);
   adb('shell', 'input', 'tap', String(x), String(y));
@@ -151,12 +154,13 @@ async function tapToggle(sel, label, cond) {
   await tap(sel, label);
   if (await waitFor(cond, 2500)) return true;
   await sleep(1200);
-  await tap(sel, label + ' (once more)');
+  // once more on the setting's whole label row, a bigger target than the box
+  await tap(`label:has(> ${sel})`, label + ' (on its label)');
   return waitFor(cond);
 }
 async function longPress(sel, ms) {
   const m = await measureSettled(sel);
-  const [x, y] = toScreen(m.cx, m.cy);
+  const [x, y] = toScreen(m.cx, m.cy, m);
   adb('shell', 'input', 'swipe', String(x), String(y), String(x), String(y), String(ms));
 }
 async function waitFor(expr, ms = 3000) {

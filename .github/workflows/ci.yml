@@ -20,8 +20,8 @@ jobs:
         run: node sim/harness.js 50 green 1
       - name: Balance harness, Harbour Market and City Square (at least 12 each)
         run: |
-          MIN_VIABLE=12 node sim/harness.js 30 harbour 3
-          MIN_VIABLE=12 node sim/harness.js 30 square 3
+          MIN_VIABLE=12 node sim/harness.js 300 harbour 3
+          MIN_VIABLE=12 node sim/harness.js 300 square 3
       - run: npm ci --no-audit --no-fund
       - run: npx playwright install --with-deps chromium
       - run: node tests/smoke.js

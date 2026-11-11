@@ -53,4 +53,20 @@ t('sanitizeRun survives garbage and round-trips a real run', () => {
   const r = E.newRun({ seed: 8, tier: 2 }); E.browse(r); E.takeOffer(r, 1); E.browse(r); const copy = E.sanitizeRun(JSON.parse(JSON.stringify(r)));
   for (const k of ['week', 'spin', 'coins', 'weather', 'event', 'phase']) assert.strictEqual(copy[k], r[k], k); assert.deepStrictEqual(copy.offers, r.offers); assert.strictEqual(copy.stock.length, r.stock.length);
 });
+t('every combo names the space it fired from and the spaces that fed it; the day keeps its own total', () => {
+  let seen = 0;
+  for (let seed = 1; seed <= 30; seed++) {
+    const r = E.newRun({ seed, tier: 3, loc: 'green' }); for (const id of ['apple', 'pear', 'honey', 'tea', 'jam', 'cheese', 'sourdough', 'pickles']) if (E.SYM[id]) E.addStock(r, id);
+    E.dawn(r); let earned = 0, best = 0;
+    while (r.phase === 'market' && !r.ended) {
+      const res = E.browse(r); if (!res) break; earned += res.total; best = Math.max(best, res.total);
+      for (const c of res.combos) { seen++; assert.ok(Number.isInteger(c.at) && c.at >= 0 && c.at < E.CELLS, 'at ' + c.at); assert.ok(res.grid[c.at], 'fired from an item'); assert.ok(Array.isArray(c.to) && c.to.every(j => Number.isInteger(j) && j >= 0 && j < E.CELLS && j !== c.at), JSON.stringify(c)); if (['turn', 'boost', 'adj', 'adjx', 'eat'].indexOf(c.rule) >= 0) assert.ok(c.to.length && c.to.every(j => E.NB[c.at].indexOf(j) >= 0), 'neighbours ' + JSON.stringify(c)); }
+      if (r.offers) E.skipOffer(r);
+    }
+    assert.strictEqual(r.day.earned, earned); assert.strictEqual(r.day.best, best);
+    const back = E.sanitizeRun(JSON.parse(JSON.stringify(r))); assert.deepStrictEqual(back.day, r.day);
+  }
+  assert.ok(seen > 50, 'enough combos fired to test: ' + seen);
+  const g = E.sanitizeRun({ loc: 'green', day: { earned: 'x', top: 5, topPay: -3 } }); assert.deepStrictEqual(g.day, { earned: 0, best: 0, combos: 0, top: '', topPay: 0 });
+});
 console.log(process.exitCode ? 'SOME FAILED' : `ALL ${n} PASSED`);

@@ -52,3 +52,11 @@ Not yet verified: Harbour/Square balance with a smarter heuristic (harness curre
 - [x] Smoke test with a fake Play bridge; emulator tap-through in CI (Android 14) and launch checks (9 and 14)
 - [ ] Taylor: upload-key secrets, Console app as Free, `full_unlock` product, data safety check
 - [ ] Phone playtest of a full season (target 2–4 minutes per market day)
+
+## v1.2.0 (2026-11-11): browse feedback, for the 8.5 bar
+- [x] Combos record the space they fired from and the spaces that fed them (no payout change; harness identical)
+- [x] Rings on every item that played a part, lines for adjacency rules, drawn once; reduced motion respected
+- [x] Total and coins count up; biggest combos listed first
+- [x] Dusk recap of the day (take, browses, best browse, best combo), kept in the save
+- [ ] Folder's re-score on the branch
+

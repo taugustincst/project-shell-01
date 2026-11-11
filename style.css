@@ -63,3 +63,14 @@ html.contrast .cell .pv { color: #000; }
 .unlock-list li { margin: 4px 0; }
 #u-buy { width: 100%; margin-top: 8px; }
 .toast { pointer-events: none; }
+/* browse feedback (1.2): lines from a rule to the neighbours that fed it, rings on every item that played a part */
+.stall { position: relative; }
+.stall .links { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; z-index: 2; }
+.stall .links line { stroke: var(--gold); stroke-width: 3; stroke-linecap: round; opacity: 0.85; }
+.stall .links.draw line { stroke-dasharray: 60; stroke-dashoffset: 60; animation: link-draw 0.45s ease-out 0.35s forwards; }
+@keyframes link-draw { to { stroke-dashoffset: 0; } }
+html.motion .stall .links line { animation: none; stroke-dasharray: none; stroke-dashoffset: 0; }
+html.contrast .stall .links line { stroke: #000; }
+.cell.link:not(.hot) { box-shadow: inset 0 0 0 2px var(--gold); }
+.cell.hot { z-index: 1; }
+.recap { margin: 0 0 8px; } .recap b { color: var(--green); }

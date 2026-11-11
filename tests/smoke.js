@@ -44,6 +44,8 @@ const onStall = p => T(p, () => window.__openstall.run.layout.filter(u => u != n
   }
   const plan = await T(p, () => window.__openstall.E.preview(window.__openstall.run).total);
   await p.click('#btn-browse'); await p.waitForSelector('#modal-offer:not([hidden])');
+  { const lk = await T(p, () => { const r = window.__openstall.run.last, L = { turn: 1, boost: 1, adj: 1, adjx: 1, eat: 1 }; return { at: new Set(r.combos.map(c => c.at)).size, lines: r.combos.some(c => L[c.rule] && c.to.length) }; });
+    check('after a browse every item whose rule fired is ringed, with lines to the neighbours that fed it', (await p.locator('#stall .cell.hot').count()) === lk.at && ((await p.locator('#stall svg.links line').count()) > 0) === lk.lines, JSON.stringify(lk)); }
   const coins1 = await T(p, () => window.__openstall.run.coins); check('the customers paid at least what the preview said', coins1 >= 15 + plan, `${coins1} vs ${15 + plan}`);
   check('the wholesaler offers the day\'s items, each with its price', (await p.locator('.offer').count()) === (await T(p, () => window.__openstall.E.offerCount(window.__openstall.run))) && (await p.locator('.offer .cost').allTextContents()).every(t => /Costs \d+/.test(t)), JSON.stringify(await p.locator('.offer').allTextContents()));
   await T(p, () => { window.__openstall.run.coins = 0; window.__openstall.reshowOffer(); });
@@ -57,6 +59,7 @@ const onStall = p => T(p, () => window.__openstall.run.layout.filter(u => u != n
   check('an item\'s rule reads in plain words, with what the wholesaler asks', (await p.textContent('#info-rule')).length > 10 && (await p.textContent('#info-extra')).includes('wholesaler asks')); await p.click('#btn-info-ok'); await p.click('#btn-sel-cancel');
   for (let i = 0; i < 12 && !(await p.isVisible('#modal-dusk')); i++) { if (await p.isVisible('#modal-offer')) await p.click('#btn-offer-skip'); else if (await p.isEnabled('#btn-browse')) await p.click('#btn-browse'); await p.waitForTimeout(150); }
   await p.waitForSelector('#modal-dusk:not([hidden])', { timeout: 5000 });
+  check('dusk opens with a recap of the day: what the stall took and its best combo', (await p.isVisible('#dusk-recap')) && /Today the stall took \+\d+ over \d+ browses/.test(await p.textContent('#dusk-recap')), await p.textContent('#dusk-recap'));
   check('after five browses the dusk ledger opens with charms for sale', (await p.locator('#dusk-charms .charm').count()) === 3);
   check('each charm shows its icon, name and rule in their own places', await T(p, () => [...document.querySelectorAll('#dusk-charms .charm')].every(c => [...c.querySelector('.ic').textContent].length <= 3 && c.querySelector('b').textContent.length > 2 && c.querySelector('.ds').textContent.length > 8)));
   await T(p, () => { window.__openstall.run.coins = 500; }); await p.click('#dusk-charms .charm button'); await p.waitForTimeout(80);

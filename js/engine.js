@@ -78,13 +78,15 @@ function symbolPool(tier) { return D.SYMBOLS.filter(s => s.tier <= tier); }
 function charmPool(tier) { return D.CHARMS.filter(c => c.tier <= tier); }
 
 /* ---------- run ---------- */
+/* What one market day has taken so far, for the dusk recap. */
+function newDay() { return { earned: 0, best: 0, combos: 0, top: '', topPay: 0 }; }
 function newRun(opts) {
   opts = opts || {};
   const loc = LOC[opts.loc] || D.LOCATIONS[0];
   const r = {
     v: 1, seed: (opts.seed | 0) || ((Date.now() ^ (Math.random() * 1e9)) | 0), loc: loc.id, tier: Math.max(0, Math.min(3, opts.tier | 0)),
     week: 1, spin: 0, spinsToday: loc.spins, coins: loc.start, stock: [], charms: [], weather: 'sun', forecast: 'sun', event: 'nothing',
-    offers: null, charmOffers: [], rerolls: 0, ended: null, uid: 1, ledger: [], last: null, combos: {}, stats: { browses: 0, earned: 0, best: 0, sold: 0, rentPaid: 0, spent: 0 }, phase: 'dawn',
+    offers: null, charmOffers: [], rerolls: 0, ended: null, uid: 1, ledger: [], last: null, combos: {}, day: newDay(), stats: { browses: 0, earned: 0, best: 0, sold: 0, rentPaid: 0, spent: 0 }, phase: 'dawn',
     layout: new Array(CELLS).fill(null)
   };
   const starters = (opts.starters || STARTERS).map(id => SYM[id] ? id : null).filter(Boolean);
@@ -137,7 +139,7 @@ function modsFor(r) {
 function modSum(mods, k, f) { let v = 0; for (const m of mods) if (m.k === k && (!f || f(m))) v += (typeof m.n === 'number' ? m.n : typeof m.p === 'number' ? m.p : 0); return v; }
 function modProd(mods, k, f) { let v = 1; for (const m of mods) if (m.k === k && (!f || f(m))) v *= m.m; return v; }
 function dawn(r) {
-  r.phase = 'market'; r.spin = 0;
+  r.phase = 'market'; r.spin = 0; r.day = newDay();
   r.event = pick(r, D.EVENTS).id;
   const mods = modsFor(r);
   r.weather = modsFor(r).find(m => m.k === 'weatherlock') ? modsFor(r).find(m => m.k === 'weatherlock').w : r.forecast;
@@ -175,29 +177,29 @@ function scoreStall(r, preview) {
   const symAt = i => grid[i] ? SYM[grid[i].id] : null;
   const combos = [], removed = [], spawned = [];
   // phase 1: transformations
-  for (let i = 0; i < CELLS; i++) { const s = symAt(i); if (!s || s.rule.k !== 'turn') continue; for (const j of NB[i]) { const o = symAt(j); if (o && hasTag(o, s.rule.t) && o.id !== s.rule.s) { grid[j].id = s.rule.s; grid[j].age = 0; combos.push({ sym: s.id, rule: 'turn', with: o.id, text: `${s.name} turned ${o.name} into ${SYM[s.rule.s].name}` }); } } }
+  for (let i = 0; i < CELLS; i++) { const s = symAt(i); if (!s || s.rule.k !== 'turn') continue; for (const j of NB[i]) { const o = symAt(j); if (o && hasTag(o, s.rule.t) && o.id !== s.rule.s) { grid[j].id = s.rule.s; grid[j].age = 0; combos.push({ sym: s.id, rule: 'turn', with: o.id, at: i, to: [j], text: `${s.name} turned ${o.name} into ${SYM[s.rule.s].name}` }); } } }
   // phase 2: base pays and boosts
   const pay = new Array(CELLS).fill(0), bonus = new Array(CELLS).fill(0);
   for (let i = 0; i < CELLS; i++) { const s = symAt(i); if (s) pay[i] = s.pay; }
-  for (let i = 0; i < CELLS; i++) { const s = symAt(i); if (!s || s.rule.k !== 'boost') continue; let hit = 0; for (const j of NB[i]) { const o = symAt(j); if (o && hasTag(o, s.rule.t)) { bonus[j] += s.rule.n * adjM; hit++; } } if (hit) combos.push({ sym: s.id, rule: 'boost', with: s.rule.t, text: `${s.name} boosted ${hit} ${tagName(s.rule.t)} item${hit > 1 ? 's' : ''}` }); }
+  for (let i = 0; i < CELLS; i++) { const s = symAt(i); if (!s || s.rule.k !== 'boost') continue; let hit = 0; const to = []; for (const j of NB[i]) { const o = symAt(j); if (o && hasTag(o, s.rule.t)) { bonus[j] += s.rule.n * adjM; hit++; to.push(j); } } if (hit) combos.push({ sym: s.id, rule: 'boost', with: s.rule.t, at: i, to, text: `${s.name} boosted ${hit} ${tagName(s.rule.t)} item${hit > 1 ? 's' : ''}` }); }
   // phase 3: own rules
   for (let i = 0; i < CELLS; i++) {
-    const it = grid[i]; if (!it) continue; const s = SYM[it.id], rl = s.rule; let add = 0, mult = 1, fired = null;
+    const it = grid[i]; if (!it) continue; const s = SYM[it.id], rl = s.rule; let add = 0, mult = 1, fired = null; const to = [];
     switch (rl.k) {
-      case 'adj': { let c = 0; for (const j of NB[i]) { const o = symAt(j); if (o && hasTag(o, rl.t)) c++; } if (c) { add = c * rl.n * adjM; fired = `${s.name} next to ${c} ${tagName(rl.t)}`; } break; }
-      case 'adjx': { if (NB[i].some(j => symAt(j) && hasTag(symAt(j), rl.t))) { mult = rl.m; fired = `${s.name} ×${rl.m} beside ${tagName(rl.t)}`; } break; }
+      case 'adj': { let c = 0; for (const j of NB[i]) { const o = symAt(j); if (o && hasTag(o, rl.t)) { c++; to.push(j); } } if (c) { add = c * rl.n * adjM; fired = `${s.name} next to ${c} ${tagName(rl.t)}`; } break; }
+      case 'adjx': { for (const j of NB[i]) if (symAt(j) && hasTag(symAt(j), rl.t)) to.push(j); if (to.length) { mult = rl.m; fired = `${s.name} ×${rl.m} beside ${tagName(rl.t)}`; } break; }
       case 'wx': if (wx === rl.w) { add = rl.n; fired = `${s.name} in the ${wxName(wx)}`; } break;
-      case 'count': { let c = 0; for (let j = 0; j < CELLS; j++) if (j !== i && symAt(j) && hasTag(symAt(j), rl.t)) c++; if (c) { add = c * rl.n; fired = `${s.name} counted ${c} ${tagName(rl.t)}`; } break; }
-      case 'eat': { let c = 0; for (const j of NB[i]) { const o = grid[j]; if (o && hasTag(SYM[o.id], rl.t) && removed.indexOf(o) < 0) { removed.push(o); c++; } } if (c) { add = c * rl.n * eatM + c * refund; fired = `${s.name} sold through ${c} ${tagName(rl.t)}`; } break; }
+      case 'count': { let c = 0; for (let j = 0; j < CELLS; j++) if (j !== i && symAt(j) && hasTag(symAt(j), rl.t)) { c++; to.push(j); } if (c) { add = c * rl.n; fired = `${s.name} counted ${c} ${tagName(rl.t)}`; } break; }
+      case 'eat': { let c = 0; for (const j of NB[i]) { const o = grid[j]; if (o && hasTag(SYM[o.id], rl.t) && removed.indexOf(o) < 0) { removed.push(o); c++; to.push(j); } } if (c) { add = c * rl.n * eatM + c * refund; fired = `${s.name} sold through ${c} ${tagName(rl.t)}`; } break; }
       case 'age': if (it.age > 0) { const a = Math.min(AGE_CAP, it.age); add = a * rl.n * ageM; fired = `${s.name} aged ${a}`; } break;
       case 'sellout': if (it.age + 1 >= rl.kk) { add = rl.n * soM + refund; removed.push(it); fired = `${s.name} sold out`; } break;
-      case 'empty': { let c = 0; for (const j of NB[i]) if (!grid[j]) c++; if (c) { add = c * rl.n; fired = `${s.name} with ${c} empty space${c > 1 ? 's' : ''}`; } break; }
-      case 'row': { let c = 0; for (const j of rowCells(i)) if (symAt(j) && hasTag(symAt(j), rl.t)) c++; if (c >= 3) { add = rl.n * rowM; fired = `${s.name} in a row of ${tagName(rl.t)}`; } break; }
+      case 'empty': { let c = 0; for (const j of NB[i]) if (!grid[j]) { c++; to.push(j); } if (c) { add = c * rl.n; fired = `${s.name} with ${c} empty space${c > 1 ? 's' : ''}`; } break; }
+      case 'row': { let c = 0; for (const j of rowCells(i)) if (symAt(j) && hasTag(symAt(j), rl.t)) { c++; if (j !== i) to.push(j); } if (c >= 3) { add = rl.n * rowM; fired = `${s.name} in a row of ${tagName(rl.t)}`; } break; }
       case 'week': { const n = Math.floor(week / 2) * rl.n * weekM; if (n > 0) { add = n; fired = `${s.name} in week ${week}`; } break; }
       case 'spawn': if (!preview && rand(r) < Math.min(0.95, rl.p * spawnM)) { spawned.push(rl.s); fired = `${s.name} brought a ${SYM[rl.s].name}`; } break;
       case 'lone': if (!NB[i].some(j => symAt(j) && symAt(j).fam === s.fam)) { add = rl.n * loneM; fired = `${s.name} alone`; } break;
     }
-    if (fired) combos.push({ sym: s.id, rule: rl.k, with: rl.t || rl.w || rl.s || '', text: fired });
+    if (fired) combos.push({ sym: s.id, rule: rl.k, with: rl.t || rl.w || rl.s || '', at: i, to: rl.k === 'row' && to.length < 2 ? [] : to, text: fired });
     pay[i] = (pay[i] + add + bonus[i]) * mult;
   }
   // phase 4: charm & day modifiers
@@ -227,6 +229,8 @@ function browse(r) {
   for (const id of spawned) addStock(r, id);
   r.coins += total; r.stats.browses++; r.stats.earned += total; if (total > r.stats.best) r.stats.best = total;
   for (const c of combos) { const key = c.sym + ':' + c.rule + ':' + c.with; r.combos[key] = (r.combos[key] | 0) + 1; }
+  const d = r.day; d.earned += total; if (total > d.best) d.best = total; d.combos += combos.length;
+  for (const c of combos) { const p = cellPay[c.at] || 0; if (p > d.topPay) { d.topPay = p; d.top = c.text; } }
   r.spin++;
   const result = { grid: grid.map(it => it ? { id: it.id, uid: it.uid } : null), cellPay, total, combos, removed: removed.map(it => it.id), spawned, spinM, weather: wx, first: isFirst, last: isLast };
   r.last = result;
@@ -285,6 +289,8 @@ function sanitizeRun(raw) {
   // the layout: kept where it is valid; an older save (laid out at random each browse) fills the stall in stock order
   r.layout = Array.isArray(raw.layout) && raw.layout.length === CELLS ? raw.layout.map(u => (u == null ? null : Math.round(num(u, 0, 0, 1e9)))) : null;
   fixLayout(r); if (!Array.isArray(raw.layout)) for (const it of r.stock) autoPlace(r, it.uid);
+  const dy = raw.day && typeof raw.day === 'object' ? raw.day : {};
+  r.day = { earned: Math.round(num(dy.earned, 0, 0, 1e9)), best: Math.round(num(dy.best, 0, 0, 1e9)), combos: Math.round(num(dy.combos, 0, 0, 1e6)), top: typeof dy.top === 'string' ? dy.top.slice(0, 120) : '', topPay: Math.round(num(dy.topPay, 0, 0, 1e9)) };
   r.last = null;
   if (r.phase === 'market' && r.spin >= r.spinsToday && !r.offers) { r.phase = 'dusk'; makeCharmOffers(r); }
   return r;

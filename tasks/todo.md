@@ -58,5 +58,7 @@ Not yet verified: Harbour/Square balance with a smarter heuristic (harness curre
 - [x] Rings on every item that played a part, lines for adjacency rules, drawn once; reduced motion respected
 - [x] Total and coins count up; biggest combos listed first
 - [x] Dusk recap of the day (take, browses, best browse, best combo), kept in the save
+- [x] Harbour quayside row (×2 dry, ×½ wet) and City Square daily order (pair side by side pays 5% of the fee each browse); Square shop 1150
+- [x] 300-run harness: Harbour 20/22 (greedy 79%), Square 16/22 (greedy 70%); Green unchanged 20/22 (88%)
 - [ ] Folder's re-score on the branch
 

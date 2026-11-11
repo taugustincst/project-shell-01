@@ -12,7 +12,7 @@ Owner: Tj (Taylor Augustin) / AugustInnovations LLC.
 
 - **One market day:** you lay out the stall (fifteen spaces; tap an item, then a space; the rest wait in the boxes) and it shows what the layout will take. The customers browse five times, each browse paying by the rules of what is next to what. After every browse the wholesaler offers three items at their price: buy one or none. At dusk, read the ledger, buy a charm, sell back what does not fit for half its price, pay the fee.
 - **120 items** in six families, each with one plain-language rule shown on tap. **80 charms**. Five weathers with a forecast. Thirty day-events.
-- **Three markets** with their own fee schedules and a shop price (Village Green 1300, Harbour Market 1450, City Square 950 with four browses a day instead of five).
+- **Three markets** with their own fee schedules and a shop price (Village Green 1300, Harbour Market 1450, City Square 1150 with four browses a day instead of five). Harbour's bottom row is the quayside (double on a dry day, half in the wet); City Square posts an order each morning for two kinds of stock side by side, paid each browse it stands.
 - **Combo journal:** every combo ever triggered, with its rule. **Pool tiers** unlock permanently: reach week 6, buy the shop, buy the chandlery. Never power for money.
 - **Free Market:** after buying the shop, keep trading with the fee climbing until it cannot be paid.
 - Portrait, one-handed, large-text, high-contrast and reduce-motion options. No gambling vocabulary anywhere (the test suite checks).

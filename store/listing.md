@@ -15,7 +15,7 @@ Lay out a market stall, find the combos, pay the fee, buy the shop on the square
 
 **Pay the fee.** Stock costs coins, and the stall fee climbs every week on a published schedule. Buy the shop on the square before the twelfth Saturday, or go bust and try a new stock next season.
 
-**The Village Green plays in full at no cost**, season after season. One in-app purchase opens Harbour Market, where it rains more days than not, City Square, with four browses a day, the endless Free Market after each shop you buy, and the last 36 kinds of stock and 28 charms.
+**The Village Green plays in full at no cost**, season after season. One in-app purchase opens Harbour Market, where the quayside row pays double on a dry day and half in the rain, City Square, with four browses a day and a customer's order every morning, the endless Free Market after each shop you buy, and the last 36 kinds of stock and 28 charms.
 
 - Plays fully offline, with no account. Five minutes or forty-five.
 - Portrait, one-handed, large-text and high-contrast options. Nothing hidden behind a hover.

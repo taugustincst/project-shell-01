@@ -16,10 +16,10 @@ const WEATHER_ORDER = ['sun', 'rain', 'wind', 'fog', 'frost'];
 const LOCATIONS = [
   { id: 'green', name: 'Village Green', tier: 0, free: true, spins: 5, offers: 3, rent: [22, 34, 50, 70, 92, 120, 152, 190, 235, 290, 355, 430], shop: 1300, start: 15,
     desc: 'A trestle table by the war memorial. Twelve Saturdays, a shop with a bell over the door for sale on the square.' },
-  { id: 'harbour', name: 'Harbour Market', tier: 1, free: false, spins: 5, offers: 3, rent: [25, 39, 58, 80, 106, 138, 175, 218, 270, 334, 408, 495], shop: 1450, start: 15, weatherBias: { rain: 2, wind: 2, fog: 1.5 },
-    desc: 'Fish crates and gulls. Rain more days than not. The chandlery on the quay is for sale.' },
-  { id: 'square', name: 'City Square', tier: 2, free: false, spins: 4, offers: 3, rent: [22, 34, 50, 70, 92, 120, 152, 190, 235, 290, 355, 430], shop: 950, start: 25, weatherBias: { sun: 1.5, frost: 1.5 },
-    desc: 'Four browses a day instead of five: the city is in a hurry. The corner shop with the green tiles is for sale, and so is everything else.' }
+  { id: 'harbour', name: 'Harbour Market', tier: 1, free: false, spins: 5, offers: 3, rent: [25, 39, 58, 80, 106, 138, 175, 218, 270, 334, 408, 495], shop: 1450, start: 15, weatherBias: { rain: 2, wind: 2, fog: 1.5 }, feature: 'quay',
+    desc: 'Fish crates and gulls. Rain more days than not. The bottom row of the stall is on the quayside: it pays double on a dry day and half in the wet, so the forecast decides your layout. The chandlery on the quay is for sale.' },
+  { id: 'square', name: 'City Square', tier: 2, free: false, spins: 4, offers: 3, rent: [22, 34, 50, 70, 92, 120, 152, 190, 235, 290, 355, 430], shop: 1150, start: 25, weatherBias: { sun: 1.5, frost: 1.5 }, feature: 'orders',
+    desc: 'Four browses a day instead of five: the city is in a hurry. Every morning a customer leaves an order for two kinds of stock side by side, and pays extra each browse it stands. The corner shop with the green tiles is for sale, and so is everything else.' }
 ];
 
 /* Symbols. [id, name, family, pay, tags, rule]   rule = { k: kind, ...args }

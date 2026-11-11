@@ -112,6 +112,7 @@ function renderMarket(full) {
   $('hdr-wx-icon').textContent = W.icon; $('hdr-wx-name').textContent = W.name;
   $('hdr-coins').textContent = R.coins; $('hdr-rent').textContent = E.rentDue(R); $('hdr-shop').textContent = R.endless ? '—' : E.shopPrice(R); $('hdr-spins').textContent = `${R.spin} / ${R.spinsToday}`;
   $('event-strip').textContent = `${ev.name}: ${ev.text}`;
+  renderMarketRule();
   $('btn-browse').hidden = R.phase !== 'market'; $('btn-dusk').hidden = R.phase !== 'dusk'; $('btn-shop').hidden = R.endless || R.coins < E.shopPrice(R) || !!R.ended;
   $('stock-count').textContent = R.stock.length;
   if (full) { showResult = false; renderStall(); }
@@ -119,6 +120,21 @@ function renderMarket(full) {
   const led = R.ledger.filter(l => l.type === 'rent' || l.type === 'lose' || l.type === 'win').slice(-5).reverse();
   $('ledger-card').innerHTML = `<h2>Ledger</h2>` + (led.length ? led.map(l => `<div class="small">Week ${l.week}: ${l.type === 'rent' ? `paid ${l.due}, ${l.coins} left` : l.type}</div>`).join('') : '<p class="muted small">The first fee is due at dusk on Saturday.</p>') + `<p class="muted small">Browses so far: ${R.stats.browses} · earned ${R.stats.earned} · best browse ${R.stats.best}</p>`;
   if (activeTab === 'stock') renderStock(); if (activeTab === 'charms') renderCharms();
+}
+/* The paid markets' own rule, said plainly above the stall: the quayside row at the Harbour, the day's order in the Square. */
+const FAM_ICON = { produce: '🍎', baked: '🍞', preserves: '🫙', flowers: '🌼', crafts: '🧶', curios: '🕰️' };
+const famWord = f => (D.FAMILIES[f] || f).toLowerCase();
+function renderMarketRule(pv) {
+  const el = $('market-strip'), f = E.feature(R);
+  if (!f) { el.hidden = true; return; }
+  el.hidden = false; pv = pv || E.preview(R);
+  if (f === 'quay') { const dry = E.quayMult(R) > 1, W = D.WEATHER[R.weather], F = D.WEATHER[R.forecast];
+    el.className = 'market-strip quay-strip ' + (dry ? 'dry' : 'wet');
+    el.innerHTML = `<b>🌊 Quayside, the bottom row:</b> ${dry ? `${esc(W.name.toLowerCase())}, so it pays <b>double</b> today.` : `${esc(W.name.toLowerCase())}, so it pays <b>half</b> today.`} <span class="muted">Double in sun and frost, half in rain, wind and fog. Tomorrow: ${esc(F.name.toLowerCase())}.</span>`; return; }
+  if (f === 'orders') { const o = R.order; el.className = 'market-strip order-strip';
+    if (!o) { el.innerHTML = '<b>📋 No order today.</b> <span class="muted">Orders come in when the stall holds two or more items.</span>'; return; }
+    const m = pv.market, ok = m && m.filled, pair = o.a === o.b ? `two ${esc(famWord(o.a))} side by side` : `${FAM_ICON[o.a] || ''} ${esc(famWord(o.a))} next to ${FAM_ICON[o.b] || ''} ${esc(famWord(o.b))}`;
+    el.innerHTML = `<b>📋 Today's order:</b> ${pair}. Pays <b>+${E.orderPay(R)}</b> each browse it stands. ${ok ? '<span class="ok">On the stall now.</span>' : '<span class="muted">Not on the stall yet.</span>'}`; }
 }
 /* The stall. After a browse it shows what each space took (res); otherwise it is the player's layout, with what
    each space would take now. Arranging: tap an item, then tap a space (swap) or "To the boxes". */
@@ -130,6 +146,9 @@ function renderStall(res) {
     const cell = document.createElement('button'); const it = res ? res.grid[i] : layout[i]; const pay = res ? res.cellPay[i] : pv.cellPay[i];
     cell.className = 'cell' + (it ? '' : ' empty') + (res && !P.settings.motion ? ' pop' : '') + (res ? '' : ' plan') + (!res && it && it.uid === sel ? ' sel' : '');
     cell.dataset.i = i;
+    const mk = res ? res.market : pv.market;
+    if (E.feature(R) === 'quay' && Math.floor(i / E.COLS) === E.QUAY_ROW) cell.classList.add('quay', E.quayMult(R) > 1 ? 'dry' : 'wet');
+    if (mk && mk.kind === 'order' && mk.filled && mk.cells.indexOf(i) >= 0) cell.classList.add('order');
     if (it) { const s = E.SYM[it.id]; cell.innerHTML = `<span class="ic"></span><span class="nm"></span><span class="pv"></span>`; cell.querySelector('.ic').textContent = ico(s.id); cell.querySelector('.nm').textContent = s.name; cell.querySelector('.pv').textContent = pay ? '+' + pay : ''; cell.setAttribute('aria-label', `${s.name}, ${pay ? 'takes ' + pay : 'takes nothing'}`);
       if (res && res.combos.some(c => c.at === i)) cell.classList.add('hot'); if (res && res.removed.indexOf(s.id) >= 0 && !R.stock.some(x => x.uid === it.uid)) cell.classList.add('gone'); }
     else { cell.innerHTML = pay ? `<span class="pv">+${pay}</span>` : ''; cell.setAttribute('aria-label', 'empty space'); }
@@ -193,6 +212,7 @@ function renderBoxes(arrange) {
   $('btn-sel-box').hidden = !onIt;
 }
 function renderPlan(pv) {
+  renderMarketRule(pv);
   if (showResult) return;
   const last = R.spin > 0 && R.last ? `The last browse took +${R.last.total}. ` : '';
   if (R.phase === 'market' && !R.offers) $('total').innerHTML = `${last}Laid out like this, the stall takes about <b>+${pv.total}</b> a browse.<div class="small muted">${R.spin === 0 ? 'Tap an item, then a space, to rearrange. ' : ''}Weather and charms are counted; chances are not.</div>`;
@@ -202,7 +222,7 @@ function doBrowse() {
   if (R.phase !== 'market' || R.offers) return;
   sel = null; const res = E.browse(R); if (!res) return;
   showResult = true; renderStall(res);
-  const bits = []; if (res.spinM !== 1) bits.push(`×${res.spinM} day`); if (res.spawned.length) bits.push(res.spawned.map(id => E.SYM[id].name).join(', ') + ' added'); if (res.removed.length) bits.push(res.removed.length + ' sold through');
+  const bits = []; if (res.spinM !== 1) bits.push(`×${res.spinM} day`); if (res.spawned.length) bits.push(res.spawned.map(id => E.SYM[id].name).join(', ') + ' added'); if (res.removed.length) bits.push(res.removed.length + ' sold through'); if (res.market && res.market.kind === 'order' && res.market.filled) bits.push(`order filled +${res.market.bonus}`); if (res.market && res.market.kind === 'quay' && res.market.cells.length) bits.push(res.market.mult > 1 ? 'quayside ×2' : 'quayside half');
   const byPay = res.combos.slice().sort((a, b) => (res.cellPay[b.at] || 0) - (res.cellPay[a.at] || 0));
   $('total').innerHTML = `The customers spent <b>+<span id="total-n">${res.total}</span></b>${bits.length ? ' · ' + bits.join(' · ') : ''}${byPay.length ? `<div class="small muted">${byPay.slice(0, 4).map(c => c.text).join(' · ')}${byPay.length > 4 ? ' · …' : ''}</div>` : ''}`;
   let fresh = 0; for (const c of res.combos) { const k = journalKey(c); if (!P.meta.journal[k]) { fresh++; P.meta.journal[k] = { text: E.ruleText(E.SYM[c.sym]), n: 0, sym: c.sym }; } P.meta.journal[k].n++; P.meta.combosEver++; }

@@ -74,3 +74,12 @@ html.contrast .stall .links line { stroke: #000; }
 .cell.link:not(.hot) { box-shadow: inset 0 0 0 2px var(--gold); }
 .cell.hot { z-index: 1; }
 .recap { margin: 0 0 8px; } .recap b { color: var(--green); }
+/* the paid markets' own rules (1.2) */
+.market-strip { margin: 0 0 8px; padding: 8px 10px; border-radius: 10px; font-size: 0.85rem; background: var(--panel); border: 1px solid var(--line); }
+.market-strip .ok { color: var(--green); font-weight: 700; }
+.quay-strip.dry { border-left: 4px solid var(--gold); } .quay-strip.wet { border-left: 4px solid var(--blue); }
+.order-strip { border-left: 4px solid var(--accent); }
+.cell.quay { border-bottom: 4px solid var(--blue); } .cell.quay.dry { border-bottom-color: var(--gold); }
+.cell.quay.empty { border-bottom-style: solid; }
+.cell.order { box-shadow: inset 0 0 0 3px var(--accent); }
+html.contrast .cell.quay, html.contrast .cell.quay.dry { border-bottom-color: #000; }

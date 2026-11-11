@@ -29,6 +29,7 @@ const onStall = p => T(p, () => window.__openstall.run.layout.filter(u => u != n
   await p.click('#btn-start'); await p.waitForSelector('#screen-market:not([hidden])');
   check('a season starts at week 1 with 15 coins and the starters already laid out', (await p.textContent('#hdr-week')).includes('Week 1') && (await p.textContent('#hdr-coins')) === '15' && (await p.locator('#stall .cell:not(.empty)').count()) === 6);
   await T(p, () => { window.__openstall.profile.settings.motion = true; });
+  check('the Village Green has no market rule strip', !(await p.isVisible('#market-strip')) && (await p.locator('#stall .cell.quay').count()) === 0);
   check('the stall shows what the layout takes before anyone browses', /about \+\d+ a browse/.test(await p.textContent('#total')));
   { // arranging: tap an item, then an empty space
     const before = await T(p, () => window.__openstall.run.layout.slice());
@@ -44,6 +45,8 @@ const onStall = p => T(p, () => window.__openstall.run.layout.filter(u => u != n
   }
   const plan = await T(p, () => window.__openstall.E.preview(window.__openstall.run).total);
   await p.click('#btn-browse'); await p.waitForSelector('#modal-offer:not([hidden])');
+  { const lk = await T(p, () => { const r = window.__openstall.run.last, L = { turn: 1, boost: 1, adj: 1, adjx: 1, eat: 1 }; return { at: new Set(r.combos.map(c => c.at)).size, lines: r.combos.some(c => L[c.rule] && c.to.length) }; });
+    check('after a browse every item whose rule fired is ringed, with lines to the neighbours that fed it', (await p.locator('#stall .cell.hot').count()) === lk.at && ((await p.locator('#stall svg.links line').count()) > 0) === lk.lines, JSON.stringify(lk)); }
   const coins1 = await T(p, () => window.__openstall.run.coins); check('the customers paid at least what the preview said', coins1 >= 15 + plan, `${coins1} vs ${15 + plan}`);
   check('the wholesaler offers the day\'s items, each with its price', (await p.locator('.offer').count()) === (await T(p, () => window.__openstall.E.offerCount(window.__openstall.run))) && (await p.locator('.offer .cost').allTextContents()).every(t => /Costs \d+/.test(t)), JSON.stringify(await p.locator('.offer').allTextContents()));
   await T(p, () => { window.__openstall.run.coins = 0; window.__openstall.reshowOffer(); });
@@ -57,6 +60,7 @@ const onStall = p => T(p, () => window.__openstall.run.layout.filter(u => u != n
   check('an item\'s rule reads in plain words, with what the wholesaler asks', (await p.textContent('#info-rule')).length > 10 && (await p.textContent('#info-extra')).includes('wholesaler asks')); await p.click('#btn-info-ok'); await p.click('#btn-sel-cancel');
   for (let i = 0; i < 12 && !(await p.isVisible('#modal-dusk')); i++) { if (await p.isVisible('#modal-offer')) await p.click('#btn-offer-skip'); else if (await p.isEnabled('#btn-browse')) await p.click('#btn-browse'); await p.waitForTimeout(150); }
   await p.waitForSelector('#modal-dusk:not([hidden])', { timeout: 5000 });
+  check('dusk opens with a recap of the day: what the stall took and its best combo', (await p.isVisible('#dusk-recap')) && /Today the stall took \+\d+ over \d+ browses/.test(await p.textContent('#dusk-recap')), await p.textContent('#dusk-recap'));
   check('after five browses the dusk ledger opens with charms for sale', (await p.locator('#dusk-charms .charm').count()) === 3);
   check('each charm shows its icon, name and rule in their own places', await T(p, () => [...document.querySelectorAll('#dusk-charms .charm')].every(c => [...c.querySelector('.ic').textContent].length <= 3 && c.querySelector('b').textContent.length > 2 && c.querySelector('.ds').textContent.length > 8)));
   await T(p, () => { window.__openstall.run.coins = 500; }); await p.click('#dusk-charms .charm button'); await p.waitForTimeout(80);
@@ -93,6 +97,13 @@ const onStall = p => T(p, () => window.__openstall.run.layout.filter(u => u != n
     check('in the Play app the sheet shows Play\'s price', (await q.textContent('#u-buy')).includes('$4.99') && !(await q.isDisabled('#u-buy')));
     await q.click('#u-buy'); await q.waitForSelector('#screen-market:not([hidden])');
     check('buying opens the market that was asked for', (await T(q, () => window.__buys)) === 1 && (await T(q, () => window.__openstall.run.loc)) === 'square' && (await q.textContent('#hdr-spins')).includes('/ ' + (await T(q, () => window.__openstall.run.spinsToday))));
+    check('City Square posts the day\'s order above the stall', /Today's order: .+ Pays \+\d+ each browse it stands/.test(await q.textContent('#market-strip')), await q.textContent('#market-strip'));
+    { const st = await T(q, () => { const K = window.__openstall, R = K.run, E = K.E, o = R.order; const a = E.D.SYMBOLS.find(s => s.fam === o.a && s.tier === 0), b = E.D.SYMBOLS.find(s => s.fam === o.b && s.tier === 0 && s.id !== a.id) || a; R.stock = []; R.layout = new Array(E.CELLS).fill(null); K.stock([a.id, b.id]); K.arrange(E.onStall(R).findIndex(x => x && x.id === a.id), 0); K.arrange(E.onStall(R).findIndex((x, i) => x && i !== 0), 1); K.render(); const pv = E.preview(R); return { filled: pv.market && pv.market.filled, cells: document.querySelectorAll('#stall .cell.order').length }; });
+      check('with the order laid out side by side the stall says so and rings the pair', st.filled && st.cells === 2 && (await q.textContent('#market-strip')).includes('On the stall now'), JSON.stringify(st)); }
+    await T(q, () => { const K = window.__openstall; K.start('harbour', 3); K.setWeather('sun'); K.render(); });
+    check('at the Harbour the bottom row is the quayside and pays double on a dry day', (await q.locator('#stall .cell.quay.dry').count()) === 5 && (await q.textContent('#market-strip')).includes('double today'));
+    await T(q, () => { window.__openstall.setWeather('rain'); window.__openstall.render(); });
+    check('and half in the rain', (await q.locator('#stall .cell.quay.wet').count()) === 5 && (await q.textContent('#market-strip')).includes('half today'));
     check('the pool opens past tier 1 once bought', await T(q, () => window.__openstall.E.maxTier({ tier: 3 }, window.__openstall.billing.state.owned) === 3));
     await ctx.close(); check('no errors in the Play edition run', qe.length === 0, qe.join(' | '));
     const r = await fresh(b, () => { const say = m => setTimeout(() => window.__billingEvent(JSON.stringify(m)), 30); window.AndroidBilling = { start(id) { say({ type: 'ready', product: id }); say({ type: 'owned', product: id, owned: true }); }, buy() { }, restore(id) { say({ type: 'owned', product: id, owned: true }); } }; });

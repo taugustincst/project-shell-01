@@ -42,6 +42,7 @@ const locLocked = id => !E.LOC[id].free && !owned();
 
 /* ---------- helpers ---------- */
 let toastT = 0; function toast(m) { const t = $('toast'); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 2400); }
+function esc(t) { return String(t).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]); }
 function show(id) { $(id).hidden = false; } function hide(id) { $(id).hidden = true; }
 function screen(id) { document.querySelectorAll('.screen').forEach(s => { s.hidden = s.id !== id; }); window.scrollTo(0, 0); }
 function tagsOf(s) { return [D.FAMILIES[s.fam]].concat(s.tags).join(' · '); }
@@ -111,6 +112,7 @@ function renderMarket(full) {
   $('hdr-wx-icon').textContent = W.icon; $('hdr-wx-name').textContent = W.name;
   $('hdr-coins').textContent = R.coins; $('hdr-rent').textContent = E.rentDue(R); $('hdr-shop').textContent = R.endless ? '—' : E.shopPrice(R); $('hdr-spins').textContent = `${R.spin} / ${R.spinsToday}`;
   $('event-strip').textContent = `${ev.name}: ${ev.text}`;
+  renderMarketRule();
   $('btn-browse').hidden = R.phase !== 'market'; $('btn-dusk').hidden = R.phase !== 'dusk'; $('btn-shop').hidden = R.endless || R.coins < E.shopPrice(R) || !!R.ended;
   $('stock-count').textContent = R.stock.length;
   if (full) { showResult = false; renderStall(); }
@@ -118,6 +120,21 @@ function renderMarket(full) {
   const led = R.ledger.filter(l => l.type === 'rent' || l.type === 'lose' || l.type === 'win').slice(-5).reverse();
   $('ledger-card').innerHTML = `<h2>Ledger</h2>` + (led.length ? led.map(l => `<div class="small">Week ${l.week}: ${l.type === 'rent' ? `paid ${l.due}, ${l.coins} left` : l.type}</div>`).join('') : '<p class="muted small">The first fee is due at dusk on Saturday.</p>') + `<p class="muted small">Browses so far: ${R.stats.browses} · earned ${R.stats.earned} · best browse ${R.stats.best}</p>`;
   if (activeTab === 'stock') renderStock(); if (activeTab === 'charms') renderCharms();
+}
+/* The paid markets' own rule, said plainly above the stall: the quayside row at the Harbour, the day's order in the Square. */
+const FAM_ICON = { produce: '🍎', baked: '🍞', preserves: '🫙', flowers: '🌼', crafts: '🧶', curios: '🕰️' };
+const famWord = f => (D.FAMILIES[f] || f).toLowerCase();
+function renderMarketRule(pv) {
+  const el = $('market-strip'), f = E.feature(R);
+  if (!f) { el.hidden = true; return; }
+  el.hidden = false; pv = pv || E.preview(R);
+  if (f === 'quay') { const dry = E.quayMult(R) > 1, W = D.WEATHER[R.weather], F = D.WEATHER[R.forecast];
+    el.className = 'market-strip quay-strip ' + (dry ? 'dry' : 'wet');
+    el.innerHTML = `<b>🌊 Quayside, the bottom row:</b> ${dry ? `${esc(W.name.toLowerCase())}, so it pays <b>double</b> today.` : `${esc(W.name.toLowerCase())}, so it pays <b>half</b> today.`} <span class="muted">Double in sun and frost, half in rain, wind and fog. Tomorrow: ${esc(F.name.toLowerCase())}.</span>`; return; }
+  if (f === 'orders') { const o = R.order; el.className = 'market-strip order-strip';
+    if (!o) { el.innerHTML = '<b>📋 No order today.</b> <span class="muted">Orders come in when the stall holds two or more items.</span>'; return; }
+    const m = pv.market, ok = m && m.filled, pair = o.a === o.b ? `two ${esc(famWord(o.a))} side by side` : `${FAM_ICON[o.a] || ''} ${esc(famWord(o.a))} next to ${FAM_ICON[o.b] || ''} ${esc(famWord(o.b))}`;
+    el.innerHTML = `<b>📋 Today's order:</b> ${pair}. Pays <b>+${E.orderPay(R)}</b> each browse it stands. ${ok ? '<span class="ok">On the stall now.</span>' : '<span class="muted">Not on the stall yet.</span>'}`; }
 }
 /* The stall. After a browse it shows what each space took (res); otherwise it is the player's layout, with what
    each space would take now. Arranging: tap an item, then tap a space (swap) or "To the boxes". */
@@ -129,15 +146,50 @@ function renderStall(res) {
     const cell = document.createElement('button'); const it = res ? res.grid[i] : layout[i]; const pay = res ? res.cellPay[i] : pv.cellPay[i];
     cell.className = 'cell' + (it ? '' : ' empty') + (res && !P.settings.motion ? ' pop' : '') + (res ? '' : ' plan') + (!res && it && it.uid === sel ? ' sel' : '');
     cell.dataset.i = i;
+    const mk = res ? res.market : pv.market;
+    if (E.feature(R) === 'quay' && Math.floor(i / E.COLS) === E.QUAY_ROW) cell.classList.add('quay', E.quayMult(R) > 1 ? 'dry' : 'wet');
+    if (mk && mk.kind === 'order' && mk.filled && mk.cells.indexOf(i) >= 0) cell.classList.add('order');
     if (it) { const s = E.SYM[it.id]; cell.innerHTML = `<span class="ic"></span><span class="nm"></span><span class="pv"></span>`; cell.querySelector('.ic').textContent = ico(s.id); cell.querySelector('.nm').textContent = s.name; cell.querySelector('.pv').textContent = pay ? '+' + pay : ''; cell.setAttribute('aria-label', `${s.name}, ${pay ? 'takes ' + pay : 'takes nothing'}`);
-      if (res && res.combos.some(c => c.sym === s.id)) cell.classList.add('hot'); if (res && res.removed.indexOf(s.id) >= 0 && !R.stock.some(x => x.uid === it.uid)) cell.classList.add('gone'); }
+      if (res && res.combos.some(c => c.at === i)) cell.classList.add('hot'); if (res && res.removed.indexOf(s.id) >= 0 && !R.stock.some(x => x.uid === it.uid)) cell.classList.add('gone'); }
     else { cell.innerHTML = pay ? `<span class="pv">+${pay}</span>` : ''; cell.setAttribute('aria-label', 'empty space'); }
     cell.onclick = () => tapCell(i, res);
     if (res && !P.settings.motion) cell.style.animationDelay = (i * 0.03) + 's';
     st.appendChild(cell);
   }
+  if (res) drawLinks(st, res);
   renderBoxes(arrange);
   if (!res) renderPlan(pv);
+}
+/* After a browse: a line from each item whose rule fired to the neighbours that fed it, and a soft ring on every
+   item that played a part, so the player can see why the stall paid what it did. Rules that reach the whole stall
+   or a row ring their partners without lines. Lines are drawn once (no motion when reduced motion is on). */
+const LINK_RULES = { turn: 1, boost: 1, adj: 1, adjx: 1, eat: 1 };
+function drawLinks(st, res) {
+  const cells = st.querySelectorAll('.cell'); if (cells.length !== E.CELLS) return;
+  const NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('class', 'links' + (P.settings.motion ? '' : ' draw')); svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('width', st.clientWidth); svg.setAttribute('height', st.clientHeight);
+  const mid = el => [el.offsetLeft + el.offsetWidth / 2, el.offsetTop + el.offsetHeight / 2], seen = {};
+  for (const c of res.combos) {
+    if (c.at == null || !Array.isArray(c.to)) continue;
+    for (const j of c.to) {
+      if (!cells[j]) continue; if (res.grid[j]) cells[j].classList.add('link');
+      if (!LINK_RULES[c.rule]) continue;
+      const k = Math.min(c.at, j) + '-' + Math.max(c.at, j); if (seen[k]) continue; seen[k] = 1;
+      const a = mid(cells[c.at]), b = mid(cells[j]), ln = document.createElementNS(NS, 'line');
+      const at = f => [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f], p = at(0.28), q = at(0.72); // stops short so the icons stay clear
+      ln.setAttribute('x1', p[0]); ln.setAttribute('y1', p[1]); ln.setAttribute('x2', q[0]); ln.setAttribute('y2', q[1]);
+      svg.appendChild(ln);
+    }
+  }
+  if (svg.childNodes.length) st.appendChild(svg);
+}
+/* Counts a number up to its new value; with reduced motion it just shows the value. */
+function countUp(el, from, to, ms) {
+  if (!el) return; if (P.settings.motion || from === to) { el.textContent = to; return; }
+  const t0 = performance.now(), live = el.closest('[aria-live]'); if (live) live.setAttribute('aria-busy', 'true');
+  const step = now => { const k = Math.min(1, (now - t0) / ms), e = 1 - Math.pow(1 - k, 3); el.textContent = Math.round(from + (to - from) * e); if (k < 1) requestAnimationFrame(step); else if (live) live.removeAttribute('aria-busy'); };
+  requestAnimationFrame(step);
 }
 function tapCell(i, res) {
   const layout = E.onStall(R);
@@ -160,6 +212,7 @@ function renderBoxes(arrange) {
   $('btn-sel-box').hidden = !onIt;
 }
 function renderPlan(pv) {
+  renderMarketRule(pv);
   if (showResult) return;
   const last = R.spin > 0 && R.last ? `The last browse took +${R.last.total}. ` : '';
   if (R.phase === 'market' && !R.offers) $('total').innerHTML = `${last}Laid out like this, the stall takes about <b>+${pv.total}</b> a browse.<div class="small muted">${R.spin === 0 ? 'Tap an item, then a space, to rearrange. ' : ''}Weather and charms are counted; chances are not.</div>`;
@@ -169,12 +222,14 @@ function doBrowse() {
   if (R.phase !== 'market' || R.offers) return;
   sel = null; const res = E.browse(R); if (!res) return;
   showResult = true; renderStall(res);
-  const bits = []; if (res.spinM !== 1) bits.push(`×${res.spinM} day`); if (res.spawned.length) bits.push(res.spawned.map(id => E.SYM[id].name).join(', ') + ' added'); if (res.removed.length) bits.push(res.removed.length + ' sold through');
-  $('total').innerHTML = `The customers spent <b>+${res.total}</b>${bits.length ? ' · ' + bits.join(' · ') : ''}${res.combos.length ? `<div class="small muted">${res.combos.slice(0, 4).map(c => c.text).join(' · ')}${res.combos.length > 4 ? ' · …' : ''}</div>` : ''}`;
+  const bits = []; if (res.spinM !== 1) bits.push(`×${res.spinM} day`); if (res.spawned.length) bits.push(res.spawned.map(id => E.SYM[id].name).join(', ') + ' added'); if (res.removed.length) bits.push(res.removed.length + ' sold through'); if (res.market && res.market.kind === 'order' && res.market.filled) bits.push(`order filled +${res.market.bonus}`); if (res.market && res.market.kind === 'quay' && res.market.cells.length) bits.push(res.market.mult > 1 ? 'quayside ×2' : 'quayside half');
+  const byPay = res.combos.slice().sort((a, b) => (res.cellPay[b.at] || 0) - (res.cellPay[a.at] || 0));
+  $('total').innerHTML = `The customers spent <b>+<span id="total-n">${res.total}</span></b>${bits.length ? ' · ' + bits.join(' · ') : ''}${byPay.length ? `<div class="small muted">${byPay.slice(0, 4).map(c => c.text).join(' · ')}${byPay.length > 4 ? ' · …' : ''}</div>` : ''}`;
   let fresh = 0; for (const c of res.combos) { const k = journalKey(c); if (!P.meta.journal[k]) { fresh++; P.meta.journal[k] = { text: E.ruleText(E.SYM[c.sym]), n: 0, sym: c.sym }; } P.meta.journal[k].n++; P.meta.combosEver++; }
   if (res.total > P.meta.bestBrowse) P.meta.bestBrowse = res.total;
   if (fresh) toast(fresh === 1 ? 'New combo in the journal.' : `${fresh} new combos in the journal.`);
   renderMarket(false); save();
+  countUp($('total-n'), 0, res.total, 550); countUp($('hdr-coins'), R.coins - res.total, R.coins, 550);
   setTimeout(showOffer, P.settings.motion ? 50 : 650);
 }
 function showOffer() {
@@ -191,6 +246,8 @@ function showDusk() {
   const due = E.rentDue(R);
   $('dusk-sub').textContent = `Week ${R.week} · dusk`; $('dusk-title').textContent = R.coins >= due ? 'Closing time' : 'Closing time — the fee is short';
   const spent = R.ledger.filter(l => l.type === 'dawn').length;
+  const d = R.day || {}, rc = $('dusk-recap');
+  if (rc) { rc.hidden = !d.earned; rc.innerHTML = d.earned ? `Today the stall took <b>+${d.earned}</b> over ${R.spin} browse${R.spin === 1 ? '' : 's'}${d.best ? `, best +${d.best}` : ''}.${d.top ? `<div class="small muted">Best combo: ${esc(d.top)} (+${d.topPay})</div>` : ''}` : ''; }
   $('dusk-ledger').innerHTML = `<div><span>Coins in the tin</span><span>${R.coins}</span></div><div><span>Stall fee due</span><span>−${due}</span></div><div class="tot"><span>After the fee</span><span>${R.coins - due}</span></div>${R.endless ? '' : `<div><span>The shop on the square</span><span>${E.shopPrice(R)}</span></div>`}`;
   const ch = $('dusk-charms'); ch.innerHTML = R.charmOffers.length ? '' : '<p class="muted small">Nothing left on the wholesaler\'s table tonight.</p>';
   R.charmOffers.forEach((id, i) => { const c = E.CHARM[id]; const el = document.createElement('div'); el.className = 'charm'; el.innerHTML = `<span class="ic"></span><div class="cx"><b></b><span class="ds"></span></div><button class="btn"></button>`; el.querySelector('.ic').textContent = CHARM_ICON[c.eff.k] || '✨'; el.querySelector('b').textContent = c.name; el.querySelector('.ds').textContent = E.charmText(c); const b = el.querySelector('button'); b.textContent = c.price + ' coins'; b.disabled = R.coins < c.price; b.onclick = () => { if (E.buyCharm(R, R.charmOffers.indexOf(id))) { toast(c.name + ' on the table.'); showDusk(); renderMarket(false); save(); } }; ch.appendChild(el); });

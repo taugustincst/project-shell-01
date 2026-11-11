@@ -53,4 +53,45 @@ t('sanitizeRun survives garbage and round-trips a real run', () => {
   const r = E.newRun({ seed: 8, tier: 2 }); E.browse(r); E.takeOffer(r, 1); E.browse(r); const copy = E.sanitizeRun(JSON.parse(JSON.stringify(r)));
   for (const k of ['week', 'spin', 'coins', 'weather', 'event', 'phase']) assert.strictEqual(copy[k], r[k], k); assert.deepStrictEqual(copy.offers, r.offers); assert.strictEqual(copy.stock.length, r.stock.length);
 });
+t('every combo names the space it fired from and the spaces that fed it; the day keeps its own total', () => {
+  let seen = 0;
+  for (let seed = 1; seed <= 30; seed++) {
+    const r = E.newRun({ seed, tier: 3, loc: 'green' }); for (const id of ['apple', 'pear', 'honey', 'tea', 'jam', 'cheese', 'sourdough', 'pickles']) if (E.SYM[id]) E.addStock(r, id);
+    E.dawn(r); let earned = 0, best = 0;
+    while (r.phase === 'market' && !r.ended) {
+      const res = E.browse(r); if (!res) break; earned += res.total; best = Math.max(best, res.total);
+      for (const c of res.combos) { seen++; assert.ok(Number.isInteger(c.at) && c.at >= 0 && c.at < E.CELLS, 'at ' + c.at); assert.ok(res.grid[c.at], 'fired from an item'); assert.ok(Array.isArray(c.to) && c.to.every(j => Number.isInteger(j) && j >= 0 && j < E.CELLS && j !== c.at), JSON.stringify(c)); if (['turn', 'boost', 'adj', 'adjx', 'eat'].indexOf(c.rule) >= 0) assert.ok(c.to.length && c.to.every(j => E.NB[c.at].indexOf(j) >= 0), 'neighbours ' + JSON.stringify(c)); }
+      if (r.offers) E.skipOffer(r);
+    }
+    assert.strictEqual(r.day.earned, earned); assert.strictEqual(r.day.best, best);
+    const back = E.sanitizeRun(JSON.parse(JSON.stringify(r))); assert.deepStrictEqual(back.day, r.day);
+  }
+  assert.ok(seen > 50, 'enough combos fired to test: ' + seen);
+  const g = E.sanitizeRun({ loc: 'green', day: { earned: 'x', top: 5, topPay: -3 } }); assert.deepStrictEqual(g.day, { earned: 0, best: 0, combos: 0, top: '', topPay: 0 });
+});
+t('the Harbour quayside row pays double on a dry day and half in the wet; the Green has no quay', () => {
+  const lay = (loc, wx, at) => { const r = E.newRun({ loc, seed: 4, tier: 3 }); r.stock = []; r.layout = new Array(E.CELLS).fill(null); r.charms = []; r.event = 'nothing'; E.addStock(r, 'apple'); r.weather = wx; const it = r.stock[0]; E.move(r, it.uid, at); return E.preview(r).cellPay[at]; };
+  const top = 0, quay = E.QUAY_ROW * E.COLS + 2;
+  assert.strictEqual(E.feature(E.newRun({ loc: 'harbour', seed: 1 })), 'quay'); assert.strictEqual(E.feature(E.newRun({ loc: 'green', seed: 1 })), null);
+  for (const wx of ['sun', 'frost']) assert.strictEqual(lay('harbour', wx, quay), lay('harbour', wx, top) * 2, wx);
+  for (const wx of ['rain', 'wind', 'fog']) assert.strictEqual(lay('harbour', wx, quay), Math.max(0, Math.round(lay('harbour', wx, top) * 0.5)), wx);
+  for (const wx of ['sun', 'rain']) assert.strictEqual(lay('green', wx, quay), lay('green', wx, top), 'green ' + wx);
+});
+t('City Square posts an order from the stall\'s own families, and a pair side by side pays it each browse', () => {
+  for (let seed = 1; seed <= 20; seed++) {
+    const r = E.newRun({ loc: 'square', seed, tier: 3 }); assert.ok(r.order, 'an order at dawn'); const fams = r.stock.map(it => E.SYM[it.id].fam);
+    assert.ok(fams.indexOf(r.order.a) >= 0 && fams.indexOf(r.order.b) >= 0, 'drawn from the stock');
+    const a = E.D.SYMBOLS.find(s => s.fam === r.order.a && s.tier === 0), b = E.D.SYMBOLS.find(s => s.fam === r.order.b && s.tier === 0 && s.id !== a.id);
+    r.stock = []; r.layout = new Array(E.CELLS).fill(null); r.charms = []; r.event = 'nothing'; E.addStock(r, a.id); E.addStock(r, b.id);
+    E.move(r, r.stock[0].uid, 0); E.move(r, r.stock[1].uid, 1); const near = E.preview(r);
+    E.move(r, r.stock[1].uid, 14); const far = E.preview(r);
+    assert.ok(near.market.filled && !far.market.filled, 'filled only side by side');
+    assert.strictEqual(near.market.bonus, E.orderPay(r)); assert.ok(E.orderPay(r) >= 4);
+    E.move(r, r.stock[1].uid, 1); const coins = r.coins, res = E.browse(r); assert.ok(res.market.filled); assert.strictEqual(r.coins - coins, res.total);
+    const back = E.sanitizeRun(JSON.parse(JSON.stringify(r))); assert.deepStrictEqual(back.order, r.order);
+  }
+  assert.strictEqual(E.newRun({ loc: 'green', seed: 3 }).order, null);
+  assert.strictEqual(E.sanitizeRun({ loc: 'square', phase: 'dusk', order: { a: 'nope', b: 'baked' } }).order, null);
+  assert.strictEqual(E.sanitizeRun({ loc: 'green', order: { a: 'baked', b: 'baked' } }).order, null);
+});
 console.log(process.exitCode ? 'SOME FAILED' : `ALL ${n} PASSED`);

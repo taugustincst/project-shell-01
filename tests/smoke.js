@@ -21,12 +21,15 @@ const onStall = p => T(p, () => window.__openstall.run.layout.filter(u => u != n
   p.on('pageerror', e => errs.push(e.message)); p.on('console', m => { if (m.type() === 'error') errs.push(m.text()); }); p.on('response', r => { if (r.status() >= 400) errs.push(r.status() + ' ' + r.url()); }); p.on('dialog', d => d.accept());
   await p.goto(base); await p.waitForSelector('#app:not([hidden])');
   check('title screen lists three markets; Harbour and City Square are in the full game', (await p.locator('.loc').count()) === 3 && (await p.locator('.loc.locked').count()) === 2 && !(await p.locator('.loc >> nth=0').getAttribute('class')).includes('locked'));
+  { const rows = await p.$$eval('#more-list a', as => as.map(a => ({ href: a.href, t: a.textContent }))); check('the market gate lists the other live games with a Play link each', await p.isVisible('#more-card') && rows.length >= 2 && rows.every(r => r.href.startsWith('https://play.google.com/store/apps/details?id=com.taugustincst.') && !r.href.endsWith('.openstall') && !/[$£€]/.test(r.t)), JSON.stringify(rows.map(r => r.href.split('.').pop()))); }
+  check('every other-game icon loads', await T(p, () => Promise.all([...document.querySelectorAll('#more-list img')].map(i => i.decode().then(() => i.naturalWidth > 0, () => false))).then(a => a.length > 0 && a.every(Boolean))));
   check('a save never carries the unlock and there is no test hook for it', await T(p, () => !('unlocked' in window.__openstall.profile.meta) && typeof window.__openstall.unlock === 'undefined'));
   await p.click('.loc >> nth=1'); await p.click('#btn-start'); await p.waitForSelector('#modal-unlock:not([hidden])');
   check('a locked market opens the unlock sheet instead of a season', !(await T(p, () => !!window.__openstall.run)) && (await p.textContent('#u-sub')) === 'Harbour Market');
   check('outside the Play app the unlock says so and cannot be bought', (await p.isDisabled('#u-buy')) && (await p.textContent('#u-note')).includes('Google Play edition'));
   await p.click('#u-later'); await p.click('.loc >> nth=0');
   await p.click('#btn-start'); await p.waitForSelector('#screen-market:not([hidden])');
+  check('no other games are shown in the market', (await p.locator('#screen-market .more-row').count()) === 0);
   check('a season starts at week 1 with 15 coins and the starters already laid out', (await p.textContent('#hdr-week')).includes('Week 1') && (await p.textContent('#hdr-coins')) === '15' && (await p.locator('#stall .cell:not(.empty)').count()) === 6);
   await T(p, () => { window.__openstall.profile.settings.motion = true; });
   check('the Village Green has no market rule strip', !(await p.isVisible('#market-strip')) && (await p.locator('#stall .cell.quay').count()) === 0);

@@ -83,3 +83,10 @@ html.contrast .stall .links line { stroke: #000; }
 .cell.quay.empty { border-bottom-style: solid; }
 .cell.order { box-shadow: inset 0 0 0 3px var(--accent); }
 html.contrast .cell.quay, html.contrast .cell.quay.dry { border-bottom-color: #000; }
+/* More from AugustInnovations */
+.more-list { list-style: none; margin: 8px 0 2px; padding: 0; display: grid; gap: 8px; }
+.more-row { display: flex; gap: 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel-2); color: var(--ink); text-decoration: none; min-height: 48px; }
+.more-row:active { background: var(--bg); } .more-row:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.more-icon { width: 48px; height: 48px; border-radius: 11px; flex: none; }
+.more-text { display: flex; flex-direction: column; min-width: 0; } .more-title { font-size: 1rem; } .more-hook { font-size: .85rem; color: var(--muted); }
+.more-store { font-size: .7rem; text-transform: uppercase; letter-spacing: .1em; color: var(--accent); margin-top: 2px; }

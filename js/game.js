@@ -2,7 +2,7 @@
 (function () {
 'use strict';
 const E = window.OS, D = E.D;
-const VERSION = '1.1.0', SAVE_KEY = 'openstall.v1', BACKUP_KEY = 'openstall.v1.backup';
+const VERSION = '1.2.1', SAVE_KEY = 'openstall.v1', BACKUP_KEY = 'openstall.v1.backup';
 /* The one-time unlock (Google Play in the Play edition, see js/billing.js). Village Green and the first pool
    tiers are free; Harbour Market, City Square, the Free Market and the later stock need it. A save never
    carries it: only Play's answer (cached by billing.js) does. */
@@ -307,6 +307,8 @@ function info(s, it) {
 function applySettings() { const s = P.settings; for (const k of ['large', 'motion', 'contrast']) { document.documentElement.classList.toggle(k, s[k]); $('opt-' + k).checked = s[k]; } }
 function init() {
   load(); applySettings(); $('about-version').textContent = VERSION;
+  // More from AugustInnovations sits on the market gate (the title screen) only, never in the market.
+  $('more-card').hidden = !(window.MoreGames && window.MoreGames.render($('more-list'), 'openstall'));
   $('btn-start').onclick = startRun; $('btn-continue').onclick = enterMarket;
   $('btn-journal-title').onclick = () => { const m = $('more-content'); m.hidden = true; const box = document.createElement('div'); box.className = 'card'; box.innerHTML = '<h2>Combo journal</h2><div id="journal-title-list"></div><div class="row-btns"><button class="btn" id="btn-journal-close">Close</button></div>'; $('screen-title').appendChild(box); renderJournal(box.querySelector('#journal-title-list')); box.querySelector('#btn-journal-close').onclick = () => box.remove(); };
   $('btn-more-title').onclick = () => { const m = $('more-content'); $('screen-title').appendChild(m); m.hidden = false; $('btn-back-title').hidden = true; m.scrollIntoView(); };

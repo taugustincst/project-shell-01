@@ -2,7 +2,7 @@
 (function () {
 'use strict';
 const E = window.OS, D = E.D;
-const VERSION = '1.2.1', SAVE_KEY = 'openstall.v1', BACKUP_KEY = 'openstall.v1.backup';
+const VERSION = '1.2.2', SAVE_KEY = 'openstall.v1', BACKUP_KEY = 'openstall.v1.backup';
 /* The one-time unlock (Google Play in the Play edition, see js/billing.js). Village Green and the first pool
    tiers are free; Harbour Market, City Square, the Free Market and the later stock need it. A save never
    carries it: only Play's answer (cached by billing.js) does. */
